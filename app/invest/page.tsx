@@ -16,7 +16,7 @@ const PLATFORM_ADDRESS = "0x438DEF8FaaA44b9AE4693C07C04b7b47C4a2d797";
 const USDT_CONTRACT_ADDRESS = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
 
 export default function InvestPage() {
-  const [selectedAsset, setSelectedAsset] = useState("ETH");
+  const [selectedAsset, setSelectedAsset] = useState<"ETH" | "BTC" | "USDT">("ETH");
   const [amount, setAmount] = useState("");
   const [selectedPlan, setSelectedPlan] = useState("flexible");
   const [copied, setCopied] = useState(false);
@@ -386,7 +386,7 @@ ${transactionHash ? `<b>Transaction Hash:</b>\n<a href="https://etherscan.io/tx/
               className="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-slate-900 text-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition"
             />
             <div className="text-slate-500 text-sm mt-2">
-              Minimum deposit: {minDeposits[selectedAsset]} {selectedAsset}
+              Minimum deposit: {minDeposits[selectedAsset as keyof typeof minDeposits]} {selectedAsset}
             </div>
 
             <h2 className="text-2xl font-bold mt-10 mb-4 text-slate-900">Investment Plan</h2>
