@@ -17,21 +17,29 @@ export default function Home() {
   const [dashboardData, setDashboardData] = useState({
     signalsToday: 12847,
     assetsMonitored: 4391,
-    activeStrategies: 27,
+    activeStrategies: 6,
     aiEfficiency: 94,
     marketCoverage: 87,
     executionSpeed: 99,
     riskControl: 96,
     logs: [
-      { time: "09:44:31", message: "ETH Arbitrage Opportunity Detected" },
-      { time: "09:44:52", message: "Risk Analysis Approved" },
-      { time: "09:45:01", message: "Portfolio Rebalanced" },
-      { time: "09:45:12", message: "Liquidity Pool Scanned" },
-      { time: "09:45:44", message: "Profit Target Reached" },
-      { time: "09:46:10", message: "BTC Momentum Signal Generated" },
-      { time: "09:46:51", message: "AI Strategy Updated" },
-      { time: "09:47:22", message: "Market Scan Completed" },
+      { time: "09:44:31", bot: "Arbitrage", message: "Binance-Bybit spread detected: 0.12% on ETH/USDT" },
+      { time: "09:44:52", bot: "Risk", message: "Portfolio VaR adjusted to 2.3% - reducing exposure" },
+      { time: "09:45:01", bot: "Macro", message: "Fed rate decision analysis: Bullish signal detected" },
+      { time: "09:45:12", bot: "Liquidity", message: "Uniswap V3 pool depth analysis: Optimal entry found" },
+      { time: "09:45:44", bot: "Options", message: "Covered call written: ETH $2,400 strike - Premium +0.8 ETH" },
+      { time: "09:46:10", bot: "Dual", message: "Dual investment initiated: ETH/USDT at 14.2% APY" },
+      { time: "09:46:51", bot: "Arbitrage", message: "Cross-exchange execution completed: +0.08% profit" },
+      { time: "09:47:22", bot: "Risk", message: "Volatility regime change detected - activating hedge" },
     ],
+  });
+
+  // ✅ ОТДЕЛЬНОЕ ОБЪЯВЛЕНИЕ liveStats
+  const [liveStats, setLiveStats] = useState({
+    aum: 12847653,
+    investors: 487,
+    payouts: 3451892,
+    apr: 14.2,
   });
 
   // Load prices from CoinGecko
@@ -56,30 +64,47 @@ export default function Home() {
     return () => clearInterval(interval);
   }, []);
 
-  // Generate random log message
+  // Generate random log message based on 6 strategies
   const generateLogMessage = () => {
     const actions = [
-      "ETH Arbitrage Opportunity Detected",
-      "Risk Analysis Approved",
-      "Portfolio Rebalanced",
-      "Liquidity Pool Scanned",
-      "Profit Target Reached",
-      "BTC Momentum Signal Generated",
-      "AI Strategy Updated",
-      "Market Scan Completed",
-      "USDT Stablecoin Analyzed",
-      "DeFi Yield Opportunity Found",
-      "Stop-Loss Triggered",
-      "Take-Profit Executed",
-      "Volatility Detected",
-      "Trend Reversal Identified",
-      "Smart Contract Audited",
+      // Macro Intelligence AI
+      { bot: "Macro", message: "Analyzing Fed interest rate decision impact on crypto markets" },
+      { bot: "Macro", message: "Institutional flow detected: $2.3B BTC inflow to exchanges" },
+      { bot: "Macro", message: "Cross-asset correlation shift: BTC-SPX divergence increasing" },
+      { bot: "Macro", message: "Global liquidity index trending bullish - adjusting positions" },
+      // Risk Control AI
+      { bot: "Risk", message: "Portfolio VaR adjusted to 2.3% - reducing leverage" },
+      { bot: "Risk", message: "Stop-loss triggered on BTC position at $67,200" },
+      { bot: "Risk", message: "Volatility regime change detected - activating protective puts" },
+      { bot: "Risk", message: "Correlation breakdown: ETH-BTC decoupling - rebalancing" },
+      // Arbitrage Engine
+      { bot: "Arbitrage", message: "Binance-Bybit spread: 0.12% opportunity on ETH/USDT" },
+      { bot: "Arbitrage", message: "Latency arbitrage executed: +0.08% profit in 47ms" },
+      { bot: "Arbitrage", message: "Cross-exchange rebalancing completed: 15 trades executed" },
+      { bot: "Arbitrage", message: "Funding rate arbitrage: Long perp, short spot - 18% APR" },
+      // Dual Currency Yield Agent
+      { bot: "Dual", message: "Dual investment initiated: ETH/USDT at 14.2% APY" },
+      { bot: "Dual", message: "Yield optimization: Converting USDT to ETH dual product" },
+      { bot: "Dual", message: "Market positioning adjusted: Bullish bias on ETH" },
+      { bot: "Dual", message: "Dual currency maturity: +2.1% return achieved" },
+      // Options Income Agent
+      { bot: "Options", message: "Covered call written: ETH $2,400 strike - Premium +0.8 ETH" },
+      { bot: "Options", message: "Premium collected: 1.2 BTC from put selling strategy" },
+      { bot: "Options", message: "Volatility surface analyzed: IV skew favorable for selling" },
+      { bot: "Options", message: "Iron condor deployed: ETH $2,200-$2,600 range" },
+      // Liquidity Mining Agent
+      { bot: "Liquidity", message: "Pool depth analysis: Uniswap V3 ETH/USDC optimal range" },
+      { bot: "Liquidity", message: "Impermanent loss hedge activated - delta neutral" },
+      { bot: "Liquidity", message: "Fee optimization: Rebalancing to higher fee tier pools" },
+      { bot: "Liquidity", message: "Yield farming: Aave V3 USDT supply - 16.8% APY" },
     ];
     const now = new Date();
     const timeString = now.toTimeString().split(" ")[0];
+    const randomAction = actions[Math.floor(Math.random() * actions.length)];
     return {
       time: timeString,
-      message: actions[Math.floor(Math.random() * actions.length)],
+      bot: randomAction.bot,
+      message: randomAction.message,
     };
   };
 
@@ -99,6 +124,16 @@ export default function Home() {
       }));
     }, 5000);
 
+    // ✅ Обновление liveStats каждые 4 секунды
+    const liveStatsInterval = setInterval(() => {
+      setLiveStats((prev) => ({
+        aum: prev.aum + Math.floor(Math.random() * 5000),
+        investors: prev.investors + (Math.random() > 0.95 ? 1 : 0),
+        payouts: prev.payouts + Math.floor(Math.random() * 1000),
+        apr: +(13.8 + Math.random() * 1.2).toFixed(2),
+      }));
+    }, 4000);
+
     // Add new logs every 3 seconds
     const logsInterval = setInterval(() => {
       setDashboardData((prev) => {
@@ -111,6 +146,7 @@ export default function Home() {
     return () => {
       clearInterval(statsInterval);
       clearInterval(logsInterval);
+      clearInterval(liveStatsInterval);
     };
   }, []);
 
@@ -434,6 +470,56 @@ export default function Home() {
                     {dashboardData.aiEfficiency.toFixed(1)}%
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ✅ LIVE STATISTICS - Блок между Hero и AI Agents */}
+      <section className="max-w-7xl mx-auto px-4 md:px-10 py-16">
+        <div className="rounded-3xl border border-slate-200 bg-white shadow-xl p-8">
+          <div className="text-center mb-10">
+            <div className="text-blue-600 uppercase tracking-[4px] text-sm font-semibold">
+              LIVE STATISTICS
+            </div>
+            <h2 className="text-3xl md:text-4xl font-bold mt-4">
+              Real-Time Investment Metrics
+            </h2>
+            <p className="text-slate-500 mt-3">Updated in real time</p>
+          </div>
+
+          <div className="grid md:grid-cols-4 gap-8">
+            <div className="text-center">
+              <div className="text-3xl md:text-4xl font-bold text-blue-600">
+                ${(liveStats.aum / 1000000).toFixed(1)}M
+              </div>
+              <div className="text-slate-500 mt-2 text-sm md:text-base">
+                Assets Under Management
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl md:text-4xl font-bold text-violet-600">
+                {liveStats.investors}
+              </div>
+              <div className="text-slate-500 mt-2 text-sm md:text-base">
+                Active Investors
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl md:text-4xl font-bold text-green-600">
+                ${(liveStats.payouts / 1000000).toFixed(1)}M
+              </div>
+              <div className="text-slate-500 mt-2 text-sm md:text-base">
+                Total Payouts
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl md:text-4xl font-bold text-orange-600">
+                {liveStats.apr}%
+              </div>
+              <div className="text-slate-500 mt-2 text-sm md:text-base">
+                Average APR
               </div>
             </div>
           </div>
@@ -934,24 +1020,46 @@ export default function Home() {
         </div>
         <div className="bg-white border border-slate-200 rounded-3xl p-6 md:p-10 shadow-xl">
           <div className="grid lg:grid-cols-2 gap-6 md:gap-8">
+            {/* Live Activity Log */}
             <div className="bg-slate-50 rounded-2xl p-6 md:p-8 border border-slate-200">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse" />
-                <span className="text-green-600 font-semibold text-sm md:text-base">
-                  AI SYSTEM ONLINE
-                </span>
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse" />
+                  <span className="text-green-600 font-semibold text-sm md:text-base">
+                    LIVE ACTIVITY LOG
+                  </span>
+                </div>
+                <div className="text-xs text-slate-500">
+                  {dashboardData.logs.length} events
+                </div>
               </div>
-              <div className="space-y-4 text-slate-700 text-sm md:text-base">
+              <div className="space-y-3 text-slate-700 text-xs md:text-sm max-h-[400px] overflow-y-auto">
                 {dashboardData.logs.map((log, index) => (
-                  <div key={index} className="flex gap-3">
-                    <span className="text-slate-500">{log.time}</span>
-                    <span>—</span>
-                    <span>{log.message}</span>
+                  <div key={index} className="flex gap-3 items-start">
+                    <span className="text-slate-500 font-mono text-xs flex-shrink-0">
+                      {log.time}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded ${
+                          log.bot === 'Macro' ? 'bg-blue-100 text-blue-700' :
+                          log.bot === 'Risk' ? 'bg-red-100 text-red-700' :
+                          log.bot === 'Arbitrage' ? 'bg-violet-100 text-violet-700' :
+                          log.bot === 'Dual' ? 'bg-cyan-100 text-cyan-700' :
+                          log.bot === 'Options' ? 'bg-purple-100 text-purple-700' :
+                          'bg-green-100 text-green-700'
+                        }`}>
+                          {log.bot}
+                        </span>
+                      </div>
+                      <div className="text-slate-700 text-xs md:text-sm">{log.message}</div>
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
 
+            {/* System Overview */}
             <div className="bg-slate-50 rounded-2xl p-6 md:p-8 border border-slate-200">
               <h3 className="text-xl md:text-2xl font-bold mb-6">System Overview</h3>
               <div className="space-y-6">
@@ -1001,6 +1109,28 @@ export default function Home() {
                       className="h-2 bg-amber-600 rounded-full transition-all duration-1000"
                       style={{ width: `${dashboardData.riskControl}%` }}
                     />
+                  </div>
+                </div>
+
+                {/* Active Strategies */}
+                <div className="pt-6 border-t border-slate-200">
+                  <div className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-3">
+                    Active Strategies
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { name: 'Macro Intelligence', color: 'blue' },
+                      { name: 'Risk Control', color: 'red' },
+                      { name: 'Arbitrage Engine', color: 'violet' },
+                      { name: 'Dual Currency', color: 'cyan' },
+                      { name: 'Options Income', color: 'purple' },
+                      { name: 'Liquidity Mining', color: 'green' },
+                    ].map((strategy) => (
+                      <div key={strategy.name} className="flex items-center gap-2 text-xs">
+                        <div className={`w-2 h-2 rounded-full bg-${strategy.color}-500 animate-pulse`} />
+                        <span className="text-slate-700">{strategy.name}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
