@@ -82,7 +82,7 @@ export default function RootLayout({
       <body className="antialiased">
         <AuthProvider>
           <WalletProvider>
-            <Navbar />
+            {/* <Navbar /> */}
             {children}
           </WalletProvider>
         </AuthProvider>
