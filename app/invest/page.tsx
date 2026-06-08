@@ -119,74 +119,70 @@ export default function InvestPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // НОВАЯ ФУНКЦИЯ: Отправка депозита в SQLite через Flask API
-  const sendDepositToBackend = async (transactionHash?: string) => {
-    try {
-      const response = await fetch("http://127.0.0.1:5000/api/deposit", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          wallet: address,
-          asset: selectedAsset,
-          amount: amountNum,
-          plan: selectedPlan || "flexible",
-          txHash: transactionHash || null,
-        }),
-      });
+  // НОВАЯ ФУНКЦИЯ: Отправка депозита через Next.js API
+const sendDepositToBackend = async (transactionHash?: string) => {
+  try {
+    const response = await fetch("/api/deposit", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        wallet: address,
+        asset: selectedAsset,
+        amount: amountNum,
+        plan: selectedPlan || "flexible",
+        txHash: transactionHash || null,
+      }),
+    });
 
-      const data = await response.json();
+    const data = await response.json();
 
-      if (data.success) {
-        console.log("✓ Deposit recorded in database");
-        return true;
-      } else {
-        console.error("Failed to record deposit:", data.error);
-        return false;
-      }
-    } catch (error) {
-      console.error("Backend connection error:", error);
+    if (data.success) {
+      console.log("✓ Deposit recorded in database");
+      return true;
+    } else {
+      console.error("Failed to record deposit:", data.error);
       return false;
     }
-  };
+  } catch (error) {
+    console.error("Backend connection error:", error);
+    return false;
+  }
+};
 
   const sendTelegramNotification = async (transactionHash?: string) => {
-    const message = `
-🚀 <b>New Investment Request</b>
-<b>Wallet:</b>
-${address}
-<b>Asset:</b>
-${selectedAsset}
-<b>Amount:</b>
-${amountNum} ${selectedAsset}
-<b>Plan:</b>
-${selectedPlan}
-<b>APR:</b>
-${currentAPR}%
-<b>Estimated Value:</b>
-$${portfolioValue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-<b>Current Price:</b>
-$${currentPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-${transactionHash ? `<b>Transaction Hash:</b>\n<a href="https://etherscan.io/tx/${transactionHash}">${transactionHash}</a>` : "<b>Payment Method:</b>\nManual Transfer"}
-`.trim();
-    try {
-      const response = await fetch("/api/telegram", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message }),
-      });
+  const message = `🚀 <b>New Investment Request</b>
+<b>Wallet:</b> ${address}
+<b>Asset:</b> ${selectedAsset}
+<b>Amount:</b> ${amountNum} ${selectedAsset}
+<b>Plan:</b> ${selectedPlan}
+<b>APR:</b> ${currentAPR}%
+<b>Estimated Value:</b> $${portfolioValue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+<b>Current Price:</b> $${currentPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+${
+  transactionHash
+    ? `<b>Transaction Hash:</b>\n<a href="https://etherscan.io/tx/${transactionHash}">${transactionHash}</a>`
+    : `<b>Payment Method:</b>\nManual Transfer`
+}`.trim();
 
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to send notification");
-      }
-      return true;
-    } catch (error) {
-      console.error("Notification error:", error);
-      return false;
+  try {
+    const response = await fetch("/api/telegram", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error || "Failed to send notification");
     }
-  };
+    return true;
+  } catch (error) {
+    console.error("Notification error:", error);
+    return false;
+  }
+};
 
   const handlePayWithWallet = async () => {
     setError("");
@@ -277,38 +273,32 @@ ${transactionHash ? `<b>Transaction Hash:</b>\n<a href="https://etherscan.io/tx/
   };
 
   const handleManualPayment = async () => {
+  setError("");
+  if (!address) {
+    setError("Please connect your wallet first");
+    return;
+  }
+  if (amountNum === 0) {
+    setError("Please enter amount");
+    return;
+  }
+
+  try {
+    setIsSending(true);
+
+    // ОТПРАВКА В БД + TELEGRAM
+    await sendDepositToBackend();
+    await sendTelegramNotification();
+
+    // Успех — показываем подтверждение
+    setPaymentSent(true);
     setError("");
-    if (!address) {
-      setError("Please connect your wallet first");
-      return;
-    }
-
-    if (amountNum === 0) {
-      setError("Please enter amount");
-      return;
-    }
-
-    try {
-      setIsSending(true);
-
-      // ОТПРАВКА В SQLITE + TELEGRAM
-      const dbSuccess = await sendDepositToBackend();
-      const tgSuccess = await sendTelegramNotification();
-
-      if (dbSuccess && tgSuccess) {
-        setPaymentSent(true);
-      } else if (dbSuccess) {
-        setPaymentSent(true);
-        console.log("Deposit saved but Telegram notification failed");
-      } else {
-        setError("Failed to process investment");
-      }
-    } catch (err) {
-      setError("Error processing payment");
-    } finally {
-      setIsSending(false);
-    }
-  };
+  } catch (err) {
+    setError("Error processing payment");
+  } finally {
+    setIsSending(false);
+  }
+};
 
   const handleDisconnect = () => {
     disconnect();
