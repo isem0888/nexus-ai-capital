@@ -14,16 +14,10 @@ export default function Home() {
   const [showInvestModal, setShowInvestModal] = useState(false);
 
   // Dynamic dashboard data state
-  const [dashboardData, setDashboardData] = useState({
-      const [liveStats, setLiveStats] = useState({
-  aum: 12847653,
-  investors: 487,
-  payouts: 3451892,
-  apr: 14.2,
-});
+const [dashboardData, setDashboardData] = useState({
   signalsToday: 12847,
   assetsMonitored: 4391,
-  activeStrategies: 6,
+  activeStrategies: 27,
   aiEfficiency: 94,
   marketCoverage: 87,
   executionSpeed: 99,
@@ -38,6 +32,13 @@ export default function Home() {
     { time: "09:46:51", bot: "Arbitrage", message: "Cross-exchange execution completed: +0.08% profit" },
     { time: "09:47:22", bot: "Risk", message: "Volatility regime change detected - activating hedge" },
   ],
+});
+
+const [liveStats, setLiveStats] = useState({  // ✅ ОТДЕЛЬНОЕ ОБЪЯВЛЕНИЕ
+  aum: 12847653,
+  investors: 487,
+  payouts: 3451892,
+  apr: 14.2,
 });
 
   // Load prices from CoinGecko
