@@ -14,13 +14,11 @@ export default function Navbar() {
   const { disconnect } = useDisconnect();
 
   const navLinks = [
-    { href: "/", label: "Home" },
-    { href: "/#strategies", label: "Strategies" },
-    { href: "/#invest", label: "Invest" },
-    { href: "/#about", label: "About" },
-    { href: "/terms", label: "Terms" },
-    { href: "/privacy", label: "Privacy" }, // ← НОВЫЙ ПУНКТ
-  ];
+  { href: "/", label: "Home" },
+  { href: "/#strategies", label: "Strategies" },
+  { href: "/invest", label: "Invest" }, // ← Изменили с "/#invest" на "/invest"
+  { href: "/#about", label: "About" },
+];
 
   // Автопереход на Dashboard после подключения кошелька из модалки
   useEffect(() => {
