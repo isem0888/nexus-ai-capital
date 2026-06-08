@@ -197,41 +197,7 @@ export default function Home() {
         />
       </div>
 
-      {/* Navbar */}
-      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 md:px-10 py-4 md:py-6 border-b border-slate-200 bg-white/80 backdrop-blur-md">
-        <a href="/" className="flex items-center gap-2 md:gap-4 cursor-pointer">
-          <img src="/logo.png" alt="Nexus AI Capital" className="h-8 md:h-12 w-auto" />
-          <span className="font-bold text-xl md:text-3xl bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">
-            NEXUS
-          </span>
-        </a>
-        <div className="hidden md:flex items-center gap-6 lg:gap-8 text-slate-600">
-          <a href="#home" className="hover:text-blue-600 transition text-sm lg:text-base">
-            Home
-          </a>
-          <a href="#agents" className="hover:text-blue-600 transition text-sm lg:text-base">
-            Agents
-          </a>
-          <a href="#technology" className="hover:text-blue-600 transition text-sm lg:text-base">
-            Technology
-          </a>
-          <a href="#metrics" className="hover:text-blue-600 transition text-sm lg:text-base">
-            Metrics
-          </a>
-          <a href="#roadmap" className="hover:text-blue-600 transition text-sm lg:text-base">
-            Roadmap
-          </a>
-          <a href="#docs" className="hover:text-blue-600 transition text-sm lg:text-base">
-            Docs
-          </a>
-          <Link
-            href="/invest"
-            className="rounded-xl bg-gradient-to-r from-blue-600 to-violet-600 px-4 lg:px-5 py-2 text-white hover:from-blue-500 hover:to-violet-500 transition text-sm lg:text-base"
-          >
-            Launch Platform
-          </Link>
-        </div>
-      </nav>
+
 
       {/* Hero Section */}
       <section
