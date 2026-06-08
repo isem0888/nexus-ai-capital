@@ -16,10 +16,10 @@ export default function Navbar() {
   const navLinks = [
     { href: "/", label: "Home" },
     { href: "/#strategies", label: "Strategies" },
-    { href: "/#invest", label: "Invest" },
+    { href: "/invest", label: "Invest" },
     { href: "/#about", label: "About" },
     { href: "/terms", label: "Terms" },
-    { href: "/privacy", label: "Privacy" }, // ← НОВЫЙ ПУНКТ
+    { href: "/privacy", label: "Privacy" },
   ];
 
   // Автопереход на Dashboard после подключения кошелька из модалки
@@ -85,12 +85,10 @@ export default function Navbar() {
           {/* CTA buttons - Правая часть */}
           <div className="hidden lg:flex items-center gap-3">
             {!isConnected ? (
-              // НЕ ПОДКЛЮЧЕН - показываем Connect Wallet
               <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2">
                 <ConnectWallet />
               </div>
             ) : (
-              // ПОДКЛЮЧЕН - показываем адрес + Dashboard + Disconnect
               <>
                 <div className="px-4 py-2 rounded-xl bg-slate-50 border border-slate-200">
                   <div className="text-xs text-slate-500 mb-0.5">Connected</div>
@@ -229,9 +227,9 @@ export default function Navbar() {
               </div>
               <div className="space-y-2.5">
                 {[
-                  { icon: "", text: "Portfolio Dashboard" },
+                  { icon: "📊", text: "Portfolio Dashboard" },
                   { icon: "💼", text: "Investment History" },
-                  { icon: "💰", text: "Earnings Analytics" },
+                  { icon: "", text: "Earnings Analytics" },
                   { icon: "🤖", text: "Active AI Strategies" },
                 ].map((item) => (
                   <div key={item.text} className="flex items-center gap-3">
