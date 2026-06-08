@@ -147,7 +147,7 @@ export default function InvestPage() {
   };
 
   const sendTelegramNotification = async (transactionHash?: string) => {
-    const message = `🚀 <b>New Investment Request</b>
+    const message = ` <b>New Investment Request</b>
 <b>Wallet:</b> ${address}
 <b>Asset:</b> ${selectedAsset}
 <b>Amount:</b> ${amountNum} ${selectedAsset}
