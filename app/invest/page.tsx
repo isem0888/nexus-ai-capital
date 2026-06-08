@@ -24,7 +24,8 @@ export default function InvestPage() {
   const [isSending, setIsSending] = useState(false);
   const [txHash, setTxHash] = useState("");
   const [error, setError] = useState("");
-
+  const [showConfirmationModal, setShowConfirmationModal] = useState(false);
+  const [confirmationStep, setConfirmationStep] = useState<"processing" | "confirmed" | "error">("processing");
   const { disconnect } = useDisconnect();
 
   // Актуальные цены
@@ -60,7 +61,6 @@ export default function InvestPage() {
         setIsLoadingPrice(false);
       }
     }
-
     loadPrices();
     const interval = setInterval(loadPrices, 60000);
     return () => clearInterval(interval);
@@ -97,7 +97,6 @@ export default function InvestPage() {
     aprRates[selectedAsset as keyof typeof aprRates][
       selectedPlan as keyof typeof aprRates.ETH
     ];
-
   const amountNum = Number(amount) || 0;
   const currentPrice = prices[selectedAsset as keyof typeof prices];
   const portfolioValue = amountNum * currentPrice;
@@ -119,40 +118,36 @@ export default function InvestPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // НОВАЯ ФУНКЦИЯ: Отправка депозита через Next.js API
-const sendDepositToBackend = async (transactionHash?: string) => {
-  try {
-    const response = await fetch("/api/deposit", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        wallet: address,
-        asset: selectedAsset,
-        amount: amountNum,
-        plan: selectedPlan || "flexible",
-        txHash: transactionHash || null,
-      }),
-    });
-
-    const data = await response.json();
-
-    if (data.success) {
-      console.log("✓ Deposit recorded in database");
-      return true;
-    } else {
-      console.error("Failed to record deposit:", data.error);
+  // Отправка депозита через Next.js API
+  const sendDepositToBackend = async (transactionHash?: string) => {
+    try {
+      const response = await fetch("/api/deposit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          wallet: address,
+          asset: selectedAsset,
+          amount: amountNum,
+          plan: selectedPlan || "flexible",
+          txHash: transactionHash || null,
+        }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        console.log("✓ Deposit recorded in database");
+        return true;
+      } else {
+        console.error("Failed to record deposit:", data.error);
+        return false;
+      }
+    } catch (error) {
+      console.error("Backend connection error:", error);
       return false;
     }
-  } catch (error) {
-    console.error("Backend connection error:", error);
-    return false;
-  }
-};
+  };
 
   const sendTelegramNotification = async (transactionHash?: string) => {
-  const message = `🚀 <b>New Investment Request</b>
+    const message = `🚀 <b>New Investment Request</b>
 <b>Wallet:</b> ${address}
 <b>Asset:</b> ${selectedAsset}
 <b>Amount:</b> ${amountNum} ${selectedAsset}
@@ -166,23 +161,36 @@ ${
     : `<b>Payment Method:</b>\nManual Transfer`
 }`.trim();
 
-  try {
-    const response = await fetch("/api/telegram", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message }),
-    });
-
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.error || "Failed to send notification");
+    try {
+      const response = await fetch("/api/telegram", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to send notification");
+      }
+      return true;
+    } catch (error) {
+      console.error("Notification error:", error);
+      return false;
     }
-    return true;
-  } catch (error) {
-    console.error("Notification error:", error);
-    return false;
-  }
-};
+  };
+
+  // Показ модального окна подтверждения
+  const showConfirmation = (step: "processing" | "confirmed" | "error" = "processing") => {
+    setConfirmationStep(step);
+    setShowConfirmationModal(true);
+  };
+
+  // Закрытие модального окна
+  const closeConfirmation = () => {
+    setShowConfirmationModal(false);
+    if (confirmationStep === "confirmed") {
+      setPaymentSent(true);
+    }
+  };
 
   const handlePayWithWallet = async () => {
     setError("");
@@ -190,12 +198,10 @@ ${
       setError("Please connect your wallet first");
       return;
     }
-
     if (amountNum === 0) {
       setError("Please enter amount");
       return;
     }
-
     if (chain?.id !== 1) {
       setError("Please switch to Ethereum Mainnet network");
       return;
@@ -203,6 +209,7 @@ ${
 
     try {
       setIsSending(true);
+      showConfirmation("processing");
       let transactionHash = "";
 
       if (selectedAsset === "ETH") {
@@ -210,17 +217,16 @@ ${
           to: PLATFORM_ADDRESS as `0x${string}`,
           value: ethers.parseEther(amount.toString()),
         });
-
         transactionHash = tx;
         setTxHash(tx);
 
-        const provider = new ethers.BrowserProvider(window.ethereum!);
+        const provider = new ethers.BrowserProvider((window as any).ethereum);
         const txResponse = await provider.getTransaction(tx);
         if (txResponse) {
           await txResponse.wait();
         }
       } else if (selectedAsset === "USDT") {
-        const provider = new ethers.BrowserProvider(window.ethereum!);
+        const provider = new ethers.BrowserProvider((window as any).ethereum);
         const signer = await provider.getSigner();
 
         const usdtContract = new ethers.Contract(
@@ -236,6 +242,7 @@ ${
           const balanceFormatted = ethers.formatUnits(balance, 6);
           setError(`Insufficient USDT balance. You have: ${balanceFormatted} USDT`);
           setIsSending(false);
+          setShowConfirmationModal(false);
           return;
         }
 
@@ -245,21 +252,20 @@ ${
         await tx.wait();
       }
 
-      // ОТПРАВКА В SQLITE + TELEGRAM
       await sendDepositToBackend(transactionHash);
       await sendTelegramNotification(transactionHash);
 
-      setPaymentSent(true);
+      setConfirmationStep("confirmed");
     } catch (err: any) {
       console.error("Payment error:", err);
 
       let errorMessage = "Payment failed. Please try again.";
       if (err.code === "ACTION_REJECTED" || err.message?.includes("User rejected")) {
         errorMessage = "Transaction rejected by user";
+      } else if (err.message?.includes("invalid EIP-1193")) {
+        errorMessage = "Wallet connection lost. Please refresh page and reconnect wallet.";
       } else if (err.message?.includes("insufficient funds")) {
         errorMessage = "Insufficient ETH for gas fees";
-      } else if (err.message?.includes("CALL_EXCEPTION") || err.message?.includes("revert")) {
-        errorMessage = "Transaction would fail. Check your balance and token approval";
       } else if (err.reason) {
         errorMessage = err.reason;
       } else if (err.message) {
@@ -267,37 +273,43 @@ ${
       }
 
       setError(errorMessage);
+      setConfirmationStep("error");
     } finally {
       setIsSending(false);
     }
   };
 
   const handleManualPayment = async () => {
-  setError("");
-  if (!address) {
-    setError("Please connect your wallet first");
-    return;
-  }
-  if (amountNum === 0) {
-    setError("Please enter amount");
-    return;
-  }
+    setError("");
+    if (!address) {
+      setError("Please connect your wallet first");
+      return;
+    }
+    if (amountNum === 0) {
+      setError("Please enter amount");
+      return;
+    }
 
-  try {
-  setIsSending(true);
+    try {
+      setIsSending(true);
+      showConfirmation("processing");
 
-  await sendDepositToBackend();
-  await sendTelegramNotification();
+      const dbSuccess = await sendDepositToBackend();
+      const tgSuccess = await sendTelegramNotification();
 
-  return;
-} catch (err) {
-  alert("CATCH ERROR");
-  console.error(err);
-  setError("Error processing payment");
-} finally {
-  setIsSending(false);
-}
-};
+      if (tgSuccess) {
+        setConfirmationStep("confirmed");
+      } else {
+        setConfirmationStep("error");
+        setError("Failed to process investment");
+      }
+    } catch (err) {
+      setError("Error processing payment");
+      setConfirmationStep("error");
+    } finally {
+      setIsSending(false);
+    }
+  };
 
   const handleDisconnect = () => {
     disconnect();
@@ -358,24 +370,20 @@ ${
               value={amount}
               onChange={(e) => {
                 let value = e.target.value.replace(/[^0-9.]/g, "");
-
-                // Разрешаем только одну точку
                 const parts = value.split(".");
                 if (parts.length > 2) {
                   value = parts[0] + "." + parts.slice(1).join("");
                 }
-
-                // Удаляем ведущие нули, но сохраняем "0" перед точкой
                 if (value.length > 1 && value.startsWith("0") && !value.startsWith("0.")) {
                   value = value.replace(/^0+/, "");
                 }
-
                 setAmount(value);
               }}
               className="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-slate-900 text-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition"
             />
             <div className="text-slate-500 text-sm mt-2">
-              Minimum deposit: {minDeposits[selectedAsset as keyof typeof minDeposits]} {selectedAsset}
+              Minimum deposit: {minDeposits[selectedAsset as keyof typeof minDeposits]}{" "}
+              {selectedAsset}
             </div>
 
             <h2 className="text-2xl font-bold mt-10 mb-4 text-slate-900">Investment Plan</h2>
@@ -441,7 +449,9 @@ ${
               <div className="mt-6 bg-blue-50 border border-blue-200 rounded-2xl p-5">
                 <div className="text-blue-700 font-semibold mb-2">NexusAI Investment Platform</div>
                 <div className="text-slate-600 text-sm leading-6">
-                  Funds are managed using AI-powered trading systems, liquidity strategies and on-chain analytics to maximize long-term portfolio growth while maintaining controlled risk exposure.
+                  Funds are managed using AI-powered trading systems, liquidity strategies and
+                  on-chain analytics to maximize long-term portfolio growth while maintaining
+                  controlled risk exposure.
                 </div>
               </div>
 
@@ -468,7 +478,9 @@ ${
               </div>
               <div className="flex justify-between pb-3 border-b border-slate-100">
                 <span className="text-slate-500">Amount</span>
-                <span className="font-semibold text-slate-900">{amountNum} {selectedAsset}</span>
+                <span className="font-semibold text-slate-900">
+                  {amountNum} {selectedAsset}
+                </span>
               </div>
               <div className="flex justify-between pb-3 border-b border-slate-100">
                 <span className="text-slate-500">Estimated Value</span>
@@ -498,19 +510,27 @@ ${
               </div>
               <div className="flex justify-between pb-3 border-b border-slate-100">
                 <span className="text-slate-500">Annual Reward</span>
-                <span className="font-semibold text-slate-900">{annualReward.toFixed(4)} {selectedAsset}</span>
+                <span className="font-semibold text-slate-900">
+                  {annualReward.toFixed(4)} {selectedAsset}
+                </span>
               </div>
               <div className="flex justify-between pb-3 border-b border-slate-100">
                 <span className="text-slate-500">Daily Income</span>
-                <span className="font-semibold text-slate-900">{dailyIncome.toFixed(4)} {selectedAsset}</span>
+                <span className="font-semibold text-slate-900">
+                  {dailyIncome.toFixed(4)} {selectedAsset}
+                </span>
               </div>
               <div className="flex justify-between pb-3 border-b border-slate-100">
                 <span className="text-slate-500">Monthly Income</span>
-                <span className="font-semibold text-slate-900">{monthlyIncome.toFixed(4)} {selectedAsset}</span>
+                <span className="font-semibold text-slate-900">
+                  {monthlyIncome.toFixed(4)} {selectedAsset}
+                </span>
               </div>
               <div className="flex justify-between pb-3 border-b border-slate-100">
                 <span className="text-slate-500">Quarterly Income</span>
-                <span className="font-semibold text-slate-900">{quarterlyIncome.toFixed(4)} {selectedAsset}</span>
+                <span className="font-semibold text-slate-900">
+                  {quarterlyIncome.toFixed(4)} {selectedAsset}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Total After 1 Year</span>
@@ -580,7 +600,9 @@ ${
                 {selectedAsset === "USDT" && (
                   <>
                     <div className="text-green-600 font-semibold">Network: Ethereum (ERC-20)</div>
-                    <div className="text-slate-500 text-sm mt-2">Send only USDT ERC-20 to this address.</div>
+                    <div className="text-slate-500 text-sm mt-2">
+                      Send only USDT ERC-20 to this address.
+                    </div>
                   </>
                 )}
               </div>
@@ -607,7 +629,7 @@ ${
                     <div className="text-slate-700 text-sm break-all mt-2 font-mono">{address}</div>
                     {chain && chain.id !== 1 && (
                       <div className="text-red-600 text-xs mt-2">
-                         Wrong network. Please switch to Ethereum Mainnet.
+                        Wrong network. Please switch to Ethereum Mainnet.
                       </div>
                     )}
                   </div>
@@ -666,7 +688,11 @@ ${
                         : "bg-gradient-to-r from-blue-600 to-violet-600 text-white hover:from-blue-500 hover:to-violet-500 shadow-xl shadow-blue-500/25"
                     }`}
                   >
-                    {isSending ? "Sending..." : amountNum === 0 ? "Launch Investment" : "I Have Sent BTC Manually"}
+                    {isSending
+                      ? "Sending..."
+                      : amountNum === 0
+                      ? "Launch Investment"
+                      : "I Have Sent BTC Manually"}
                   </button>
                 )}
 
@@ -710,6 +736,254 @@ ${
           </div>
         </div>
       </div>
+
+      {/* ============================================ */}
+      {/* МОДАЛЬНОЕ ОКНО ПОДТВЕРЖДЕНИЯ ИНВЕСТИЦИИ */}
+      {/* ============================================ */}
+      {showConfirmationModal && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/70 backdrop-blur-sm p-4 animate-[fadeIn_0.3s_ease-out]">
+          <div className="bg-white border border-slate-200 rounded-3xl p-8 max-w-md w-full relative shadow-2xl animate-[scaleIn_0.3s_ease-out]">
+            
+            {/* Кнопка закрытия (только если confirmed) */}
+            {confirmationStep === "confirmed" && (
+              <button
+                onClick={closeConfirmation}
+                className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 transition"
+              >
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+
+            {/* ===== ШАГ 1: PROCESSING ===== */}
+            {confirmationStep === "processing" && (
+              <div className="text-center">
+                {/* Анимированный спиннер */}
+                <div className="flex justify-center mb-6">
+                  <div className="relative w-24 h-24">
+                    <div className="absolute inset-0 rounded-full border-4 border-blue-100" />
+                    <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-blue-600 animate-spin" />
+                    <div className="absolute inset-3 rounded-full border-4 border-transparent border-t-violet-600 animate-spin" style={{ animationDirection: "reverse", animationDuration: "1.5s" }} />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <svg className="w-8 h-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+
+                <h2 className="text-2xl font-bold text-slate-900 mb-2">Processing Investment</h2>
+                <p className="text-slate-600 mb-6">
+                  Please wait while we process your {amountNum} {selectedAsset} investment...
+                </p>
+
+                {/* Прогресс-бар */}
+                <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden mb-6">
+                  <div className="h-full bg-gradient-to-r from-blue-600 to-violet-600 rounded-full animate-[progress_3s_ease-in-out_infinite]" />
+                </div>
+
+                {/* Шаги обработки */}
+                <div className="space-y-3 text-left">
+                  <div className="flex items-center gap-3">
+                    <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                      <svg className="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <span className="text-slate-700 text-sm">Transaction submitted</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 animate-pulse">
+                      <div className="w-2 h-2 rounded-full bg-blue-600 animate-ping" />
+                    </div>
+                    <span className="text-slate-700 text-sm">Confirming on blockchain...</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0">
+                      <div className="w-2 h-2 rounded-full bg-slate-400" />
+                    </div>
+                    <span className="text-slate-400 text-sm">Recording in database</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0">
+                      <div className="w-2 h-2 rounded-full bg-slate-400" />
+                    </div>
+                    <span className="text-slate-400 text-sm">Activating AI strategy</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ===== ШАГ 2: CONFIRMED ===== */}
+            {confirmationStep === "confirmed" && (
+              <div className="text-center">
+                {/* Успешная анимация */}
+                <div className="flex justify-center mb-6">
+                  <div className="relative w-24 h-24">
+                    <div className="absolute inset-0 rounded-full bg-green-100 animate-[scaleIn_0.5s_ease-out]" />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <svg className="w-12 h-12 text-green-600 animate-[checkmark_0.5s_ease-out_0.3s_both]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    {/* Конфетти-эффект */}
+                    <div className="absolute -top-2 -left-2 w-4 h-4 rounded-full bg-blue-500 animate-[confetti_1s_ease-out]" />
+                    <div className="absolute -top-1 -right-3 w-3 h-3 rounded-full bg-violet-500 animate-[confetti_1s_ease-out_0.1s]" />
+                    <div className="absolute -bottom-2 -left-1 w-3 h-3 rounded-full bg-green-500 animate-[confetti_1s_ease-out_0.2s]" />
+                    <div className="absolute -bottom-1 -right-2 w-4 h-4 rounded-full bg-amber-500 animate-[confetti_1s_ease-out_0.3s]" />
+                  </div>
+                </div>
+
+                <h2 className="text-2xl font-bold text-slate-900 mb-2">Investment Confirmed! 🎉</h2>
+                <p className="text-slate-600 mb-6">
+                  Your investment of <span className="font-bold text-green-600">{amountNum} {selectedAsset}</span> has been successfully processed.
+                </p>
+
+                {/* Детали инвестиции */}
+                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 mb-6 text-left">
+                  <div className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-3">Investment Details</div>
+                  <div className="space-y-2.5">
+                    <div className="flex justify-between">
+                      <span className="text-slate-500 text-sm">Asset</span>
+                      <span className="font-semibold text-slate-900 text-sm">{selectedAsset}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500 text-sm">Amount</span>
+                      <span className="font-semibold text-slate-900 text-sm">{amountNum} {selectedAsset}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500 text-sm">Value</span>
+                      <span className="font-semibold text-slate-900 text-sm">${formatPrice(portfolioValue)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500 text-sm">APR</span>
+                      <span className="font-semibold text-green-600 text-sm">{currentAPR}%</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500 text-sm">Plan</span>
+                      <span className="font-semibold text-blue-600 text-sm capitalize">{selectedPlan}</span>
+                    </div>
+                    {txHash && (
+                      <div className="pt-2 border-t border-slate-200">
+                        <div className="text-xs text-slate-500 mb-1">Transaction Hash</div>
+                        <a
+                          href={`https://etherscan.io/tx/${txHash}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 text-xs break-all hover:underline font-mono"
+                        >
+                          {txHash.slice(0, 10)}...{txHash.slice(-8)}
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Прогноз дохода */}
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-4 mb-6">
+                  <div className="text-xs text-green-700 font-semibold mb-2">Expected Annual Income</div>
+                  <div className="text-2xl font-bold text-green-700">
+                    +{annualReward.toFixed(4)} {selectedAsset}
+                  </div>
+                  <div className="text-xs text-green-600 mt-1">
+                    ≈ ${formatPrice(annualReward * currentPrice)} per year
+                  </div>
+                </div>
+
+                {/* Кнопки */}
+                <div className="space-y-3">
+                  <button
+                    onClick={closeConfirmation}
+                    className="w-full py-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-violet-600 text-white font-semibold hover:from-blue-500 hover:to-violet-500 transition shadow-lg shadow-blue-500/25"
+                  >
+                    Go to Dashboard
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowConfirmationModal(false);
+                      setAmount("");
+                      setTxHash("");
+                    }}
+                    className="w-full py-3 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition font-medium"
+                  >
+                    Make Another Investment
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ===== ШАГ 3: ERROR ===== */}
+            {confirmationStep === "error" && (
+              <div className="text-center">
+                {/* Иконка ошибки */}
+                <div className="flex justify-center mb-6">
+                  <div className="relative w-24 h-24">
+                    <div className="absolute inset-0 rounded-full bg-red-100" />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <svg className="w-12 h-12 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+
+                <h2 className="text-2xl font-bold text-slate-900 mb-2">Processing Failed</h2>
+                <p className="text-slate-600 mb-6">
+                  There was an issue processing your investment. Please try again or contact support.
+                </p>
+
+                {error && (
+                  <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6 text-left">
+                    <div className="text-xs text-red-700 font-semibold mb-1">Error Details</div>
+                    <div className="text-red-600 text-sm">{error}</div>
+                  </div>
+                )}
+
+                <div className="space-y-3">
+                  <button
+                    onClick={closeConfirmation}
+                    className="w-full py-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-violet-600 text-white font-semibold hover:from-blue-500 hover:to-violet-500 transition shadow-lg shadow-blue-500/25"
+                  >
+                    Try Again
+                  </button>
+                  <button
+                    onClick={() => setShowConfirmationModal(false)}
+                    className="w-full py-3 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition font-medium"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* CSS анимации */}
+      <style jsx>{`
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes scaleIn {
+          from { opacity: 0; transform: scale(0.9); }
+          to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes progress {
+          0% { width: 0%; }
+          50% { width: 70%; }
+          100% { width: 100%; }
+        }
+        @keyframes checkmark {
+          from { opacity: 0; transform: scale(0.5); }
+          to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes confetti {
+          0% { opacity: 1; transform: translate(0, 0) scale(1); }
+          100% { opacity: 0; transform: translate(var(--tx, 20px), var(--ty, -30px)) scale(0); }
+        }
+      `}</style>
     </main>
   );
 }
