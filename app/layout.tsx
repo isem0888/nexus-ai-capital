@@ -16,18 +16,35 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Nexus AI Capital",
-  description: "AI-Powered Digital Asset Management",
+  metadataBase: new URL("https://nexus-ai-capital.vercel.app"),
+
+  title: {
+    default: "Nexus AI Capital",
+    template: "%s | Nexus AI Capital",
+  },
+
+  description:
+    "AI-powered investment platform utilizing autonomous trading agents, options strategies and liquidity mining solutions.",
 
   applicationName: "Nexus AI Capital",
 
+  keywords: [
+    "AI Trading",
+    "Investment Platform",
+    "Crypto Investment",
+    "Ethereum",
+    "Liquidity Mining",
+    "Options Trading",
+    "Digital Assets",
+    "Nexus AI Capital",
+  ],
+
   openGraph: {
     title: "Nexus AI Capital",
-    description: "AI-Powered Digital Asset Management",
+    description:
+      "AI-powered investment platform utilizing autonomous trading agents and digital asset management.",
     url: "https://nexus-ai-capital.vercel.app",
     siteName: "Nexus AI Capital",
-    locale: "en_US",
-    type: "website",
     images: [
       {
         url: "/logo.png",
@@ -36,12 +53,15 @@ export const metadata: Metadata = {
         alt: "Nexus AI Capital",
       },
     ],
+    locale: "en_US",
+    type: "website",
   },
 
   twitter: {
     card: "summary_large_image",
     title: "Nexus AI Capital",
-    description: "AI-Powered Digital Asset Management",
+    description:
+      "AI-powered investment platform utilizing autonomous trading agents and digital asset management.",
     images: ["/logo.png"],
   },
 
@@ -58,14 +78,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black text-white min-h-screen`}>
-        <WalletProvider>
-          <AuthProvider>
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
+      <body className="antialiased">
+        <AuthProvider>
+          <WalletProvider>
             <Navbar />
-            <main className="relative z-10">{children}</main>
-          </AuthProvider>
-        </WalletProvider>
+            {children}
+          </WalletProvider>
+        </AuthProvider>
       </body>
     </html>
   );
