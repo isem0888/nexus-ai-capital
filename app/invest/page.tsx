@@ -289,10 +289,6 @@ ${
   await sendDepositToBackend();
   await sendTelegramNotification();
 
- 
-  setPaymentSent(true);
-  setError("");
-
   return;
 } catch (err) {
   alert("CATCH ERROR");

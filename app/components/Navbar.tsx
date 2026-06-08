@@ -18,6 +18,8 @@ export default function Navbar() {
     { href: "/#strategies", label: "Strategies" },
     { href: "/#invest", label: "Invest" },
     { href: "/#about", label: "About" },
+    { href: "/terms", label: "Terms" },
+    { href: "/privacy", label: "Privacy" }, // ← НОВЫЙ ПУНКТ
   ];
 
   // Автопереход на Dashboard после подключения кошелька из модалки
@@ -227,7 +229,7 @@ export default function Navbar() {
               </div>
               <div className="space-y-2.5">
                 {[
-                  { icon: "📊", text: "Portfolio Dashboard" },
+                  { icon: "", text: "Portfolio Dashboard" },
                   { icon: "💼", text: "Investment History" },
                   { icon: "💰", text: "Earnings Analytics" },
                   { icon: "🤖", text: "Active AI Strategies" },
