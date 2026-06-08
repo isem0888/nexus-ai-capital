@@ -284,20 +284,23 @@ ${
   }
 
   try {
-    setIsSending(true);
+  setIsSending(true);
 
-    // ОТПРАВКА В БД + TELEGRAM
-    await sendDepositToBackend();
-    await sendTelegramNotification();
+  await sendDepositToBackend();
+  await sendTelegramNotification();
 
-    // Успех — показываем подтверждение
-    setPaymentSent(true);
-    setError("");
-  } catch (err) {
-    setError("Error processing payment");
-  } finally {
-    setIsSending(false);
-  }
+  alert("SUCCESS");
+  setPaymentSent(true);
+  setError("");
+
+  return;
+} catch (err) {
+  alert("CATCH ERROR");
+  console.error(err);
+  setError("Error processing payment");
+} finally {
+  setIsSending(false);
+}
 };
 
   const handleDisconnect = () => {
