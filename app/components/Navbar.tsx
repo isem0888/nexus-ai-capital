@@ -14,12 +14,13 @@ export default function Navbar() {
   const { disconnect } = useDisconnect();
 
   const navLinks = [
-  { href: "/", label: "Home" },
-  { href: "/#strategies", label: "Strategies" },
-  { href: "/invest", label: "Invest" },  // ✅ Отдельная страница
-  { href: "/#about", label: "About" },
-    { href: "/terms", label: "Terms" },
-    { href: "/privacy", label: "Privacy" },
+    { href: "/", label: "Home" },
+    { href: "/#strategies", label: "Strategies" },
+    { href: "/#metrics", label: "Live Metrics" },
+    { href: "/#about", label: "About Nexus" },
+    { href: "/invest", label: "Start Invest" },
+    { href: "/terms", label: "Terms of Service" },
+    { href: "/privacy", label: "Privacy Policy" },
   ];
 
   // Автопереход на Dashboard после подключения кошелька из модалки
@@ -191,7 +192,6 @@ export default function Navbar() {
       {showWalletModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
           <div className="bg-white border border-slate-200 rounded-3xl p-8 max-w-md w-full relative shadow-2xl">
-            {/* Кнопка закрытия */}
             <button
               onClick={() => setShowWalletModal(false)}
               className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 transition"
@@ -201,7 +201,6 @@ export default function Navbar() {
               </svg>
             </button>
 
-            {/* Иконка замка */}
             <div className="flex justify-center mb-6">
               <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-100 to-violet-100 flex items-center justify-center">
                 <svg className="w-10 h-10 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -210,17 +209,14 @@ export default function Navbar() {
               </div>
             </div>
 
-            {/* Заголовок */}
             <h2 className="text-3xl font-bold text-slate-900 text-center mb-3">
               Wallet Connection Required
             </h2>
 
-            {/* Описание */}
             <p className="text-slate-600 text-center mb-6">
               Connect your wallet to access your personal investment dashboard.
             </p>
 
-            {/* Список преимуществ */}
             <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 mb-6">
               <div className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-3">
                 You'll get access to:
@@ -229,7 +225,7 @@ export default function Navbar() {
                 {[
                   { icon: "📊", text: "Portfolio Dashboard" },
                   { icon: "💼", text: "Investment History" },
-                  { icon: "", text: "Earnings Analytics" },
+                  { icon: "💰", text: "Earnings Analytics" },
                   { icon: "🤖", text: "Active AI Strategies" },
                 ].map((item) => (
                   <div key={item.text} className="flex items-center gap-3">
@@ -242,7 +238,6 @@ export default function Navbar() {
               </div>
             </div>
 
-            {/* Кнопка подключения */}
             <div className="space-y-3">
               <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
                 <ConnectWallet />
@@ -256,7 +251,6 @@ export default function Navbar() {
               </button>
             </div>
 
-            {/* Дополнительная информация */}
             <div className="mt-6 pt-6 border-t border-slate-200">
               <div className="flex items-start gap-3">
                 <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
