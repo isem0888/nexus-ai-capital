@@ -14,14 +14,35 @@ export default function Navbar() {
   const { disconnect } = useDisconnect();
 
   const navLinks = [
-    { href: "/", label: "Home" },
-    { href: "/#strategies", label: "Strategies" },
-    { href: "/#metrics", label: "Live Metrics" },
-    { href: "/#about", label: "About Nexus" },
-    { href: "/invest", label: "Start Invest" },
-    { href: "/terms", label: "Terms of Service" },
-    { href: "/privacy", label: "Privacy Policy" },
-  ];
+  {
+    href: "/",
+    label: "Home",
+  },
+  {
+    href: "/#strategies",
+    label: "Strategies",
+  },
+  {
+    href: "/#metrics",
+    label: "Live Metrics",
+  },
+  {
+    href: "/#about",
+    label: "About Nexus",
+  },
+  {
+    href: "/invest",
+    label: "Start Invest",
+  },
+  {
+    href: "/terms",
+    label: "Terms of Service",
+  },
+  {
+    href: "/privacy",
+    label: "Privacy Policy",
+  },
+];
 
   // Автопереход на Dashboard после подключения кошелька из модалки
   useEffect(() => {
@@ -51,26 +72,33 @@ export default function Navbar() {
     <>
       <header className="fixed top-0 left-0 right-0 z-50 border-b border-slate-200 bg-white/80 backdrop-blur-xl">
         <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 lg:px-8">
-          <Link href="/" className="flex items-center gap-4">
-            <img
-              src="/logo.png"
-              alt="Nexus AI Capital"
-              className="h-10 w-auto"
-            />
-            <span className="font-bold text-xl bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">
-              NEXUS AI CAPITAL
-            </span>
-          </Link>
+          <Link href="/" className="flex items-center gap-3">
+  <img
+    src="/logo.png"
+    alt="Nexus AI Capital"
+    className="h-12 w-auto"
+  />
+
+  <div className="flex flex-col">
+    <span className="font-bold text-2xl bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">
+      NEXUS AI CAPITAL
+    </span>
+
+    <span className="text-xs text-slate-500 tracking-wide">
+      Autonomous Trading Intelligence
+    </span>
+  </div>
+</Link>
 
           {/* Desktop menu */}
-          <ul className="hidden lg:flex items-center gap-2">
+          <ul className="hidden lg:flex items-center gap-1 xl:gap-3">
             {navLinks.map((link) => {
               const active = pathname === link.href;
               return (
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                    className={`px-3 xl:px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                       active
                         ? "text-blue-600 bg-blue-50"
                         : "text-slate-600 hover:text-blue-600 hover:bg-slate-50"
