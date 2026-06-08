@@ -289,7 +289,7 @@ ${
   await sendDepositToBackend();
   await sendTelegramNotification();
 
-  alert("SUCCESS");
+ 
   setPaymentSent(true);
   setError("");
 
