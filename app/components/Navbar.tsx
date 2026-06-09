@@ -13,46 +13,13 @@ export default function Navbar() {
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
 
-  const navLinks = [
-  {
-    href: "/",
-    label: "Home",
-  },
-  {
-    href: "/#strategies",
-    label: "Strategies",
-  },
-  {
-    href: "/#metrics",
-    label: "Live Metrics",
-  },
-  {
-    href: "/#about",
-    label: "About Nexus",
-  },
-  {
-    href: "/invest",
-    label: "Start Invest",
-  },
-  {
-    href: "/terms",
-    label: "Terms of Service",
-  },
-  {
-    href: "/privacy",
-    label: "Privacy Policy",
-  },
-];
-
-  // Автопереход на Dashboard после подключения кошелька из модалки
   useEffect(() => {
     if (isConnected && showWalletModal) {
       setShowWalletModal(false);
-      router.push("/dashboard");
+      router.push("/invest");
     }
   }, [isConnected, showWalletModal, router]);
 
-  // Обработчик клика на Dashboard
   const handleDashboardClick = (e: React.MouseEvent) => {
     if (!isConnected) {
       e.preventDefault();
@@ -60,7 +27,6 @@ export default function Navbar() {
     }
   };
 
-  // Обработчик отключения кошелька
   const handleDisconnect = () => {
     disconnect();
     if (pathname === "/dashboard") {
@@ -73,45 +39,56 @@ export default function Navbar() {
       <header className="fixed top-0 left-0 right-0 z-50 border-b border-slate-200 bg-white/80 backdrop-blur-xl">
         <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 lg:px-8">
           <Link href="/" className="flex items-center gap-3">
-  <img
-    src="/logo.png"
-    alt="Nexus AI Capital"
-    className="h-12 w-auto"
-  />
-
-  <div className="flex flex-col">
-    <span className="font-bold text-2xl bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">
-      NEXUS AI CAPITAL
-    </span>
-
-    <span className="text-xs text-slate-500 tracking-wide">
-      Autonomous Trading Intelligence
-    </span>
-  </div>
-</Link>
+            <img
+              src="/logo.png"
+              alt="Nexus AI Capital"
+              className="h-12 w-auto"
+            />
+            <div className="flex flex-col">
+              <span className="font-bold text-2xl bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">
+                NEXUS AI CAPITAL
+              </span>
+              <span className="text-xs text-slate-500 tracking-wide">
+                Autonomous Trading Intelligence
+              </span>
+            </div>
+          </Link>
 
           {/* Desktop menu */}
-          <ul className="hidden lg:flex items-center gap-1 xl:gap-3">
-            {navLinks.map((link) => {
-              const active = pathname === link.href;
-              return (
-                <li key={link.href}>
-                  <Link
-                    href={link.href}
-                    className={`px-3 xl:px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                      active
-                        ? "text-blue-600 bg-blue-50"
-                        : "text-slate-600 hover:text-blue-600 hover:bg-slate-50"
-                    }`}
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
+          <div className="hidden lg:flex items-center gap-1 xl:gap-3">
+            <Link
+              href="/"
+              className={`px-3 xl:px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                pathname === "/"
+                  ? "text-blue-600 bg-blue-50"
+                  : "text-slate-600 hover:text-blue-600 hover:bg-slate-50"
+              }`}
+            >
+              Home
+            </Link>
+            <Link
+              href="/roadmap"
+              className={`px-3 xl:px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                pathname === "/roadmap"
+                  ? "text-blue-600 bg-blue-50"
+                  : "text-slate-600 hover:text-blue-600 hover:bg-slate-50"
+              }`}
+            >
+              Roadmap
+            </Link>
+            <Link
+              href="/invest"
+              className={`px-3 xl:px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                pathname === "/invest"
+                  ? "text-blue-600 bg-blue-50"
+                  : "text-slate-600 hover:text-blue-600 hover:bg-slate-50"
+              }`}
+            >
+              Invest
+            </Link>
+          </div>
 
-          {/* CTA buttons - Правая часть */}
+          {/* CTA buttons - Right side */}
           <div className="hidden lg:flex items-center gap-3">
             {!isConnected ? (
               <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2">
@@ -163,21 +140,45 @@ export default function Navbar() {
         {mobileOpen && (
           <div className="lg:hidden border-t border-slate-200 bg-white">
             <ul className="flex flex-col px-6 py-4 gap-1">
-              {navLinks.map((link) => (
-                <li key={link.href}>
-                  <Link
-                    href={link.href}
-                    onClick={() => setMobileOpen(false)}
-                    className={`block px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
-                      pathname === link.href
-                        ? "text-blue-600 bg-blue-50"
-                        : "text-slate-600 hover:text-blue-600 hover:bg-slate-50"
-                    }`}
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
+              <li>
+                <Link
+                  href="/"
+                  onClick={() => setMobileOpen(false)}
+                  className={`block px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                    pathname === "/"
+                      ? "text-blue-600 bg-blue-50"
+                      : "text-slate-600 hover:text-blue-600 hover:bg-slate-50"
+                  }`}
+                >
+                  Home
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/roadmap"
+                  onClick={() => setMobileOpen(false)}
+                  className={`block px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                    pathname === "/roadmap"
+                      ? "text-blue-600 bg-blue-50"
+                      : "text-slate-600 hover:text-blue-600 hover:bg-slate-50"
+                  }`}
+                >
+                  Roadmap
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/invest"
+                  onClick={() => setMobileOpen(false)}
+                  className={`block px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                    pathname === "/invest"
+                      ? "text-blue-600 bg-blue-50"
+                      : "text-slate-600 hover:text-blue-600 hover:bg-slate-50"
+                  }`}
+                >
+                  Invest
+                </Link>
+              </li>
 
               <li className="pt-3 border-t border-slate-200 mt-2">
                 {!isConnected ? (
@@ -216,7 +217,7 @@ export default function Navbar() {
         )}
       </header>
 
-      {/* Модальное окно "Подключите кошелёк" */}
+      {/* Wallet Connection Modal */}
       {showWalletModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
           <div className="bg-white border border-slate-200 rounded-3xl p-8 max-w-md w-full relative shadow-2xl">

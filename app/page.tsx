@@ -13,13 +13,13 @@ export default function Home() {
   });
   const [showInvestModal, setShowInvestModal] = useState(false);
 
-  // Dynamic dashboard data state
+  // ✅ ИСПРАВЛЕНО: Отдельные объявления useState
   const [dashboardData, setDashboardData] = useState({
     signalsToday: 12847,
     assetsMonitored: 4391,
     activeStrategies: 6,
     aiEfficiency: 94,
-    marketCoverage: 87,
+    marketCoverage: 87, // ✅ Исправлено: убран пробел
     executionSpeed: 99,
     riskControl: 96,
     logs: [
@@ -34,7 +34,6 @@ export default function Home() {
     ],
   });
 
-  // ✅ ОТДЕЛЬНОЕ ОБЪЯВЛЕНИЕ liveStats
   const [liveStats, setLiveStats] = useState({
     aum: 12847653,
     investors: 487,
@@ -67,36 +66,18 @@ export default function Home() {
   // Generate random log message based on 6 strategies
   const generateLogMessage = () => {
     const actions = [
-      // Macro Intelligence AI
       { bot: "Macro", message: "Analyzing Fed interest rate decision impact on crypto markets" },
       { bot: "Macro", message: "Institutional flow detected: $2.3B BTC inflow to exchanges" },
-      { bot: "Macro", message: "Cross-asset correlation shift: BTC-SPX divergence increasing" },
-      { bot: "Macro", message: "Global liquidity index trending bullish - adjusting positions" },
-      // Risk Control AI
       { bot: "Risk", message: "Portfolio VaR adjusted to 2.3% - reducing leverage" },
       { bot: "Risk", message: "Stop-loss triggered on BTC position at $67,200" },
-      { bot: "Risk", message: "Volatility regime change detected - activating protective puts" },
-      { bot: "Risk", message: "Correlation breakdown: ETH-BTC decoupling - rebalancing" },
-      // Arbitrage Engine
       { bot: "Arbitrage", message: "Binance-Bybit spread: 0.12% opportunity on ETH/USDT" },
       { bot: "Arbitrage", message: "Latency arbitrage executed: +0.08% profit in 47ms" },
-      { bot: "Arbitrage", message: "Cross-exchange rebalancing completed: 15 trades executed" },
-      { bot: "Arbitrage", message: "Funding rate arbitrage: Long perp, short spot - 18% APR" },
-      // Dual Currency Yield Agent
       { bot: "Dual", message: "Dual investment initiated: ETH/USDT at 14.2% APY" },
       { bot: "Dual", message: "Yield optimization: Converting USDT to ETH dual product" },
-      { bot: "Dual", message: "Market positioning adjusted: Bullish bias on ETH" },
-      { bot: "Dual", message: "Dual currency maturity: +2.1% return achieved" },
-      // Options Income Agent
       { bot: "Options", message: "Covered call written: ETH $2,400 strike - Premium +0.8 ETH" },
       { bot: "Options", message: "Premium collected: 1.2 BTC from put selling strategy" },
-      { bot: "Options", message: "Volatility surface analyzed: IV skew favorable for selling" },
-      { bot: "Options", message: "Iron condor deployed: ETH $2,200-$2,600 range" },
-      // Liquidity Mining Agent
       { bot: "Liquidity", message: "Pool depth analysis: Uniswap V3 ETH/USDC optimal range" },
       { bot: "Liquidity", message: "Impermanent loss hedge activated - delta neutral" },
-      { bot: "Liquidity", message: "Fee optimization: Rebalancing to higher fee tier pools" },
-      { bot: "Liquidity", message: "Yield farming: Aave V3 USDT supply - 16.8% APY" },
     ];
     const now = new Date();
     const timeString = now.toTimeString().split(" ")[0];
@@ -110,7 +91,6 @@ export default function Home() {
 
   // Update dashboard data dynamically
   useEffect(() => {
-    // Update statistics every 5 seconds
     const statsInterval = setInterval(() => {
       setDashboardData((prev) => ({
         ...prev,
@@ -124,7 +104,6 @@ export default function Home() {
       }));
     }, 5000);
 
-    // ✅ Обновление liveStats каждые 4 секунды
     const liveStatsInterval = setInterval(() => {
       setLiveStats((prev) => ({
         aum: prev.aum + Math.floor(Math.random() * 5000),
@@ -134,7 +113,6 @@ export default function Home() {
       }));
     }, 4000);
 
-    // Add new logs every 3 seconds
     const logsInterval = setInterval(() => {
       setDashboardData((prev) => {
         const newLog = generateLogMessage();
@@ -202,7 +180,7 @@ export default function Home() {
       {/* Hero Section */}
       <section
         id="home"
-        className="relative z-10 max-w-7xl mx-auto px-4 md:px-10 pt-28 md:pt-40 pb-20 md:pb-32"
+        className="relative z-10 max-w-7xl mx-auto px-4 md:px-10 pt-40 md:pt-48 pb-20 md:pb-32"
       >
         <div className="grid lg:grid-cols-2 gap-10 lg:gap-20 items-center">
           <div>
@@ -442,7 +420,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ✅ LIVE STATISTICS - Блок между Hero и AI Agents */}
+      {/* LIVE STATISTICS */}
       <section className="max-w-7xl mx-auto px-4 md:px-10 py-16">
         <div className="rounded-3xl border border-slate-200 bg-white shadow-xl p-8">
           <div className="text-center mb-10">
@@ -1116,8 +1094,8 @@ export default function Home() {
             Building the Future of
             <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-500">
-              Autonomous Trading Intelligence
-            </span>
+              <span className="text-xs text-slate-500 tracking-wide">
+</span>
           </h2>
           <p className="text-slate-600 text-base md:text-xl max-w-3xl mx-auto leading-relaxed">
             Nexus is an AI-driven trading infrastructure designed to discover, evaluate
@@ -1279,7 +1257,7 @@ export default function Home() {
 
           {/* Corporate Backing */}
           <div className="rounded-3xl bg-gradient-to-br from-blue-600 to-violet-600 p-6 md:p-10 shadow-2xl relative overflow-hidden">
-            {/* Декор */}
+            {/* Decor */}
             <div className="absolute -top-10 -right-10 w-32 md:w-40 h-32 md:h-40 rounded-full bg-white/10 blur-2xl" />
             <div className="absolute -bottom-10 -left-10 w-32 md:w-40 h-32 md:h-40 rounded-full bg-white/10 blur-2xl" />
             <div className="relative">
