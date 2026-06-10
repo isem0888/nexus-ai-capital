@@ -70,7 +70,7 @@ export default function WhitepaperPage() {
         <div className="text-center mb-16">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-blue-500/30 bg-blue-500/10 text-blue-300 text-xs font-semibold uppercase tracking-wider mb-6">
             <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
-            Version 1.0 · June 2026
+            Version 3.2 · June 2026
           </div>
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-black text-white mb-6 leading-tight">
             Nexus AI Capital
