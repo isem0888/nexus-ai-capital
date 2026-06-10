@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import WithdrawModal from "../components/WithdrawModal";
+import ConnectWallet from "../components/ConnectWallet";
 
 // ─── 52 Realistic AI Agent Messages (all prices dynamic) ──────────────────────
 const AI_LOGS: Array<{ bot: string; msg: (p: any) => string }> = [
@@ -200,6 +201,24 @@ function OverviewSection({ stats, onWithdraw, address, prices }: any) {
                 <div className="text-lg font-bold text-white">${prices.ETH.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Connect Wallet Banner - shown only for Google users without wallet */}
+      {!address && (
+        <div className="rounded-2xl border border-blue-500/30 bg-blue-500/5 backdrop-blur-xl p-5 md:p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+          <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+            <svg className="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+            </svg>
+          </div>
+          <div className="flex-1">
+            <div className="text-white font-semibold text-sm mb-0.5">Connect your wallet to see your portfolio</div>
+            <div className="text-slate-400 text-xs">Link a Web3 wallet to track investments, balances and earnings in real time.</div>
+          </div>
+          <div className="flex-shrink-0">
+            <ConnectWallet />
           </div>
         </div>
       )}
