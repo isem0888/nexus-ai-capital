@@ -37,15 +37,15 @@ export default function Navbar() {
   return (
     <>
       <header className="fixed top-0 left-0 right-0 z-50 border-b border-slate-800/60 bg-slate-950/90 backdrop-blur-xl">
-        <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-2.5 lg:px-8">
+        <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 lg:px-8">
           <Link href="/" className="flex items-center gap-3">
             <img
               src="/logo.png"
               alt="Nexus AI Capital"
-              className="h-9 w-auto"
+              className="h-12 w-auto"
             />
             <div className="flex flex-col">
-              <span className="font-bold text-lg bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent leading-none">
+              <span className="font-bold text-2xl bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">
                 NEXUS AI CAPITAL
               </span>
               <span className="text-xs text-slate-500 tracking-wide">
@@ -86,24 +86,12 @@ export default function Navbar() {
             >
               Invest
             </Link>
-            <Link
-              href="/whitepaper"
-              className={`px-3 xl:px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                pathname === "/whitepaper"
-                  ? "text-blue-400 bg-blue-500/10"
-                  : "text-slate-300 hover:text-white hover:bg-slate-800/60"
-              }`}
-            >
-              Whitepaper
-            </Link>
           </div>
 
           {/* CTA buttons - Right side */}
           <div className="hidden lg:flex items-center gap-3">
             {!isConnected ? (
-              <div className="bg-slate-900 border border-slate-700 rounded-xl px-4 py-2">
-                <ConnectWallet />
-              </div>
+              <ConnectWallet />
             ) : (
               <>
                 <div className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-700">
@@ -122,7 +110,7 @@ export default function Navbar() {
 
                 <button
                   onClick={handleDisconnect}
-                  className="px-5 py-2.5 text-sm font-medium text-rose-400 border border-rose-500/30 bg-rose-500/10 rounded-xl hover:bg-rose-500/20 transition"
+                  className="px-5 py-2.5 text-sm font-medium text-rose-600 border border-rose-200 bg-rose-50 rounded-xl hover:bg-rose-100 transition"
                 >
                   Disconnect
                 </button>
@@ -189,19 +177,6 @@ export default function Navbar() {
                   Invest
                 </Link>
               </li>
-              <li>
-                <Link
-                  href="/whitepaper"
-                  onClick={() => setMobileOpen(false)}
-                  className={`block px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
-                    pathname === "/whitepaper"
-                      ? "text-blue-400 bg-blue-500/10"
-                      : "text-slate-300 hover:text-white hover:bg-slate-800/60"
-                  }`}
-                >
-                  Whitepaper
-                </Link>
-              </li>
 
               <li className="pt-3 border-t border-slate-800 mt-2">
                 {!isConnected ? (
@@ -228,7 +203,7 @@ export default function Navbar() {
                         handleDisconnect();
                         setMobileOpen(false);
                       }}
-                      className="w-full px-5 py-3 text-sm font-medium text-rose-400 border border-rose-500/30 bg-rose-500/10 rounded-xl hover:bg-rose-500/20 transition"
+                      className="w-full px-5 py-3 text-sm font-medium text-rose-600 border border-rose-200 bg-rose-50 rounded-xl hover:bg-rose-100 transition"
                     >
                       Disconnect
                     </button>
