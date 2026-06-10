@@ -87,43 +87,6 @@ export default function Home() {
   const s8 = useScrollReveal(); // Arkham Wallet
   const s9 = useScrollReveal(); // Performance Dashboard
 
-  const [nexoBalance, setNexoBalance] = useState<{
-    ethUsd: number; totalUsd: number; lastUpdated: string; txCount: number;
-  } | null>(null);
-
-  useEffect(() => {
-    async function loadNexoBalance() {
-      try {
-        const NEXO_ADDRESS = "0x9bdb521a97e95177bf252c253e256a60c3e14447";
-        // Etherscan public API - no key needed for basic balance
-        const [ethRes, txRes] = await Promise.all([
-          fetch(`https://api.etherscan.io/api?module=account&action=balance&address=${NEXO_ADDRESS}&tag=latest`),
-          fetch(`https://api.etherscan.io/api?module=account&action=txlist&address=${NEXO_ADDRESS}&startblock=0&endblock=99999999&sort=desc&page=1&offset=1`),
-        ]);
-        const ethData = await ethRes.json();
-        // Get ETH price
-        const priceRes = await fetch("https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDT");
-        const priceData = await priceRes.json();
-        const ethPrice = parseFloat(priceData.price);
-        const ethBalance = parseFloat(ethData.result) / 1e18;
-        const ethUsd = ethBalance * ethPrice;
-        const now = new Date();
-        setNexoBalance({
-          ethUsd,
-          totalUsd: 292000000, // Etherscan shows $292M+ total across all tokens
-          lastUpdated: now.toLocaleTimeString(),
-          txCount: 419,
-        });
-      } catch (e) {
-        console.error("Failed to load Nexo balance:", e);
-      }
-    }
-    loadNexoBalance();
-    const interval = setInterval(loadNexoBalance, 60000);
-    return () => clearInterval(interval);
-  }, []);
-  const s9 = useScrollReveal(); // Performance Dashboard
-
   // Load prices from CoinGecko
   useEffect(() => {
     async function loadPrices() {
@@ -1411,68 +1374,24 @@ export default function Home() {
                 transaction — fully transparent on-chain.
               </p>
 
-              {/* Live balance stats */}
-              {nexoBalance && (
-                <div className="grid grid-cols-2 gap-3 mb-5">
-                  <div className="rounded-xl border border-slate-700/50 bg-slate-800/40 p-3">
-                    <div className="text-xs text-slate-500 uppercase tracking-wider mb-1">ETH Balance (USD)</div>
-                    <div className="text-lg font-black text-blue-400">
-                      ${nexoBalance.ethUsd > 1000000
-                        ? `${(nexoBalance.ethUsd / 1000000).toFixed(1)}M`
-                        : nexoBalance.ethUsd.toLocaleString(undefined, {maximumFractionDigits: 0})}
-                    </div>
-                  </div>
-                  <div className="rounded-xl border border-slate-700/50 bg-slate-800/40 p-3">
-                    <div className="text-xs text-slate-500 uppercase tracking-wider mb-1">Total Portfolio</div>
-                    <div className="text-lg font-black text-green-400">
-                      ${(nexoBalance.totalUsd / 1000000).toFixed(0)}M+
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div className="rounded-xl border border-blue-500/20 bg-slate-950/60 p-3 md:p-4 font-mono text-xs md:text-sm text-slate-300 break-all mb-4">
+              <div className="rounded-xl border border-blue-500/20 bg-slate-950/60 p-3 md:p-4 font-mono text-xs md:text-sm text-slate-300 break-all mb-4 md:mb-6">
                 <span className="text-slate-500">Address: </span>
-                <span className="text-blue-400">0x9bdb521a...C3e14447</span>
-                <span className="text-slate-600 mx-2">•</span>
-                <a href="https://etherscan.io/address/0x9bdb521a97e95177bf252c253e256a60c3e14447"
-                   target="_blank" rel="noopener noreferrer"
-                   className="text-slate-400 hover:text-blue-400 transition">
-                  etherscan.io ↗
-                </a>
+                <span className="text-blue-400">
+                  nexo_treasury_verified • arkm.com/explorer/entity/nexo
+                </span>
               </div>
 
-              {nexoBalance && (
-                <div className="flex items-center gap-2 text-xs text-slate-500 mb-5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                  Live data · Updated {nexoBalance.lastUpdated}
-                </div>
-              )}
-
-              <div className="flex flex-wrap gap-3">
-                <a
-                  href="https://arkm.com/explorer/entity/nexo"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 font-semibold transition text-sm"
-                >
-                  View on Arkham
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                  </svg>
-                </a>
-                <a
-                  href="https://etherscan.io/address/0x9bdb521a97e95177bf252c253e256a60c3e14447"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800/60 hover:border-slate-500 text-slate-300 hover:text-white px-5 py-2.5 font-semibold transition text-sm"
-                >
-                  View on Etherscan
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                  </svg>
-                </a>
-              </div>
+              <a
+                href="https://arkm.com/explorer/entity/nexo"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-blue-600 to-violet-600 text-white px-5 md:px-6 py-2.5 md:py-3 font-semibold hover:from-blue-500 hover:to-violet-500 transition text-sm md:text-base"
+              >
+                View on Arkham
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </a>
             </div>
           </div>
         </div>
