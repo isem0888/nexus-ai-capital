@@ -341,6 +341,47 @@ export default function InvestPage() {
           </p>
         </div>
 
+        {/* TVL Banner */}
+        <div className="mb-8 rounded-2xl border border-blue-500/20 bg-gradient-to-r from-blue-500/10 via-violet-500/10 to-blue-500/10 backdrop-blur-xl p-5">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-10">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div>
+                <div className="text-xs text-slate-400 uppercase tracking-widest mb-0.5">Total Value Locked</div>
+                <div className="text-2xl font-black text-white">$159M+</div>
+              </div>
+            </div>
+            <div className="hidden sm:block w-px h-10 bg-slate-700/60" />
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-xl bg-violet-500/20 flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+              <div>
+                <div className="text-xs text-slate-400 uppercase tracking-widest mb-0.5">Active Investors</div>
+                <div className="text-2xl font-black text-white">12,400+</div>
+              </div>
+            </div>
+            <div className="hidden sm:block w-px h-10 bg-slate-700/60" />
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                </svg>
+              </div>
+              <div>
+                <div className="text-xs text-slate-400 uppercase tracking-widest mb-0.5">Avg. APR</div>
+                <div className="text-2xl font-black text-emerald-400">13.5%</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Why Nexus */}
         <div ref={sWhy.ref} style={{ opacity: sWhy.visible ? 1 : 0, transform: sWhy.visible ? "translateY(0)" : "translateY(36px)", transition: "opacity 0.7s ease 0.1s, transform 0.7s ease 0.1s" }} className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
           {whyNexus.map((item) => (
