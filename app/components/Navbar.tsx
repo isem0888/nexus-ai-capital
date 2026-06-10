@@ -42,10 +42,10 @@ export default function Navbar() {
             <img
               src="/logo.png"
               alt="Nexus AI Capital"
-              className="h-12 w-auto"
+              className="h-6 w-auto"
             />
             <div className="flex flex-col">
-              <span className="font-bold text-2xl bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">
+              <span className="font-bold text-base bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent leading-none">
                 NEXUS AI CAPITAL
               </span>
               <span className="text-xs text-slate-500 tracking-wide">
@@ -86,12 +86,24 @@ export default function Navbar() {
             >
               Invest
             </Link>
+            <Link
+              href="/whitepaper"
+              className={`px-3 xl:px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                pathname === "/whitepaper"
+                  ? "text-blue-400 bg-blue-500/10"
+                  : "text-slate-300 hover:text-white hover:bg-slate-800/60"
+              }`}
+            >
+              Whitepaper
+            </Link>
           </div>
 
           {/* CTA buttons - Right side */}
           <div className="hidden lg:flex items-center gap-3">
             {!isConnected ? (
-              <ConnectWallet />
+              <div className="bg-slate-900 border border-slate-700 rounded-xl px-4 py-2">
+                <ConnectWallet />
+              </div>
             ) : (
               <>
                 <div className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-700">
@@ -175,6 +187,19 @@ export default function Navbar() {
                   }`}
                 >
                   Invest
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/whitepaper"
+                  onClick={() => setMobileOpen(false)}
+                  className={`block px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                    pathname === "/whitepaper"
+                      ? "text-blue-400 bg-blue-500/10"
+                      : "text-slate-300 hover:text-white hover:bg-slate-800/60"
+                  }`}
+                >
+                  Whitepaper
                 </Link>
               </li>
 
