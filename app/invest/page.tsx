@@ -24,9 +24,18 @@ export default function InvestPage() {
   const { isConnected, address } = useAccount();
   const { disconnect } = useDisconnect();
 
-  const [asset, setAsset] = useState("ETH");
-  const [plan, setPlan] = useState("Flexible");
-  const [amount, setAmount] = useState("");
+  const [asset, setAsset] = useState<string>(() => {
+    if (typeof window !== "undefined") return localStorage.getItem("invest_asset") || "ETH";
+    return "ETH";
+  });
+  const [plan, setPlan] = useState<string>(() => {
+    if (typeof window !== "undefined") return localStorage.getItem("invest_plan") || "Flexible";
+    return "Flexible";
+  });
+  const [amount, setAmount] = useState<string>(() => {
+    if (typeof window !== "undefined") return localStorage.getItem("invest_amount") || "";
+    return "";
+  });
   const [depositMethod, setDepositMethod] = useState<"wallet" | "manual">("wallet");
   const [copied, setCopied] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -410,7 +419,10 @@ export default function InvestPage() {
               {assetPlans[asset].map((p) => (
                 <button
                   key={p.name}
-                  onClick={() => setPlan(p.name)}
+                  onClick={() => {
+                    setPlan(p.name);
+                    localStorage.setItem("invest_plan", p.name);
+                  }}
                   className={`relative p-5 rounded-xl border-2 text-left transition-all ${
                     plan === p.name
                       ? "bg-gradient-to-r from-blue-600 to-violet-600 text-white border-transparent shadow-lg shadow-blue-500/20"
@@ -449,7 +461,10 @@ export default function InvestPage() {
               <input
                 type="number"
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
+                onChange={(e) => {
+                    setAmount(e.target.value);
+                    localStorage.setItem("invest_amount", e.target.value);
+                  }}
                 placeholder={prices[asset] ? `Minimum ${getMinDeposit(asset)} ${asset}` : `Loading...`}
                 min="0"
                 step="any"
@@ -476,7 +491,10 @@ export default function InvestPage() {
               ].map((val) => (
                 <button
                   key={val}
-                  onClick={() => setAmount(val.toString())}
+                  onClick={() => {
+                      setAmount(val.toString());
+                      localStorage.setItem("invest_amount", val.toString());
+                    }}
                   className="px-4 py-2 rounded-lg bg-slate-800/70 border border-slate-700/50 hover:border-blue-500/60 hover:bg-blue-500/10 text-slate-400 hover:text-blue-400 text-sm font-medium transition"
                 >
                   {val} {asset}
