@@ -101,7 +101,15 @@ export default function Navbar() {
           {/* CTA buttons - Right side */}
           <div className="hidden lg:flex items-center gap-3">
             {!isConnected ? (
-              <ConnectWallet />
+              <>
+                <Link
+                  href="/login"
+                  className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white border border-slate-700 hover:border-slate-500 rounded-lg transition"
+                >
+                  Sign In
+                </Link>
+                <ConnectWallet />
+              </>
             ) : (
               <>
                 <div className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-700">
@@ -120,7 +128,7 @@ export default function Navbar() {
 
                 <button
                   onClick={handleDisconnect}
-                  className="px-5 py-2.5 text-sm font-medium text-rose-600 border border-rose-200 bg-rose-50 rounded-xl hover:bg-rose-100 transition"
+                  className="px-5 py-2.5 text-sm font-medium text-rose-400 border border-rose-500/30 bg-rose-500/10 rounded-xl hover:bg-rose-500/20 transition"
                 >
                   Disconnect
                 </button>
@@ -203,8 +211,17 @@ export default function Navbar() {
 
               <li className="pt-3 border-t border-slate-800 mt-2">
                 {!isConnected ? (
-                  <div className="bg-slate-900 border border-slate-700 rounded-xl p-3">
-                    <ConnectWallet />
+                  <div className="space-y-2">
+                    <Link
+                      href="/login"
+                      onClick={() => setMobileOpen(false)}
+                      className="block w-full text-center px-5 py-3 text-sm font-medium text-slate-300 border border-slate-700 bg-slate-900 rounded-xl hover:border-slate-500 hover:text-white transition"
+                    >
+                      Sign In
+                    </Link>
+                    <div className="bg-slate-900 border border-slate-700 rounded-xl p-3">
+                      <ConnectWallet />
+                    </div>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -226,7 +243,7 @@ export default function Navbar() {
                         handleDisconnect();
                         setMobileOpen(false);
                       }}
-                      className="w-full px-5 py-3 text-sm font-medium text-rose-600 border border-rose-200 bg-rose-50 rounded-xl hover:bg-rose-100 transition"
+                      className="w-full px-5 py-3 text-sm font-medium text-rose-400 border border-rose-500/30 bg-rose-500/10 rounded-xl hover:bg-rose-500/20 transition"
                     >
                       Disconnect
                     </button>
