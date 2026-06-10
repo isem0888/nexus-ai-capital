@@ -15,9 +15,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   },
   callbacks: {
     async redirect({ url, baseUrl }) {
-      // After sign in always go to home page
-      // User can then connect wallet and go to dashboard
-      return baseUrl;
+      return baseUrl + "/dashboard";
     },
   },
 });
