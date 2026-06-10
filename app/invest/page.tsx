@@ -24,18 +24,17 @@ export default function InvestPage() {
   const { isConnected, address } = useAccount();
   const { disconnect } = useDisconnect();
 
-  const [asset, setAsset] = useState<string>(() => {
-    if (typeof window !== "undefined") return localStorage.getItem("invest_asset") || "ETH";
-    return "ETH";
-  });
-  const [plan, setPlan] = useState<string>(() => {
-    if (typeof window !== "undefined") {
-      const savedAsset = localStorage.getItem("invest_asset") || "ETH";
-      return localStorage.getItem(`invest_plan_${savedAsset}`) || "Flexible";
-    }
-    return "Flexible";
-  });
+  const [asset, setAsset] = useState<string>("ETH");
+  const [plan, setPlan] = useState<string>("Flexible");
   const [amount, setAmount] = useState<string>("");
+
+  // Restore asset/plan after Google Translate re-render
+  useEffect(() => {
+    const savedAsset = sessionStorage.getItem("invest_asset");
+    const savedPlan = sessionStorage.getItem("invest_plan");
+    if (savedAsset) setAsset(savedAsset);
+    if (savedPlan) setPlan(savedPlan);
+  }, []);
   const [depositMethod, setDepositMethod] = useState<"wallet" | "manual">("wallet");
   const [copied, setCopied] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -397,8 +396,8 @@ export default function InvestPage() {
                       setAsset(item);
                       setPlan(newPlan);
                       setAmount("");
-                      localStorage.setItem("invest_asset", item);
-                      localStorage.setItem(`invest_plan_${item}`, newPlan);
+                      sessionStorage.setItem("invest_asset", item);
+                      sessionStorage.setItem("invest_plan", newPlan);
                     }}
                     className={`px-4 py-4 rounded-xl border-2 font-semibold transition-all text-left ${
                       isActive
@@ -428,7 +427,7 @@ export default function InvestPage() {
                   key={p.name}
                   onClick={() => {
                     setPlan(p.name);
-                    localStorage.setItem(`invest_plan_${asset}`, p.name);
+                    sessionStorage.setItem("invest_plan", p.name);
                   }}
                   className={`relative p-5 rounded-xl border-2 text-left transition-all ${
                     plan === p.name
