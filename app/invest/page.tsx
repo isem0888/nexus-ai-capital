@@ -24,9 +24,17 @@ export default function InvestPage() {
   const { isConnected, address } = useAccount();
   const { disconnect } = useDisconnect();
 
-  const [asset, setAsset] = useState("ETH");
-  const [plan, setPlan] = useState("Flexible");
-  const [amount, setAmount] = useState("");
+  const [asset, setAsset] = useState<string>("ETH");
+  const [plan, setPlan] = useState<string>("Flexible");
+  const [amount, setAmount] = useState<string>("");
+
+  // Restore asset/plan after Google Translate re-render
+  useEffect(() => {
+    const savedAsset = sessionStorage.getItem("invest_asset");
+    const savedPlan = sessionStorage.getItem("invest_plan");
+    if (savedAsset) setAsset(savedAsset);
+    if (savedPlan) setPlan(savedPlan);
+  }, []);
   const [depositMethod, setDepositMethod] = useState<"wallet" | "manual">("wallet");
   const [copied, setCopied] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -383,7 +391,14 @@ export default function InvestPage() {
                 return (
                   <button
                     key={item}
-                    onClick={() => { setAsset(item); setPlan(assetPlans[item][0].name); }}
+                    onClick={() => {
+                      const newPlan = assetPlans[item][0].name;
+                      setAsset(item);
+                      setPlan(newPlan);
+                      setAmount("");
+                      sessionStorage.setItem("invest_asset", item);
+                      sessionStorage.setItem("invest_plan", newPlan);
+                    }}
                     className={`px-4 py-4 rounded-xl border-2 font-semibold transition-all text-left ${
                       isActive
                         ? "bg-blue-600 text-white border-blue-500 shadow-lg shadow-blue-500/20"
@@ -410,7 +425,10 @@ export default function InvestPage() {
               {assetPlans[asset].map((p) => (
                 <button
                   key={p.name}
-                  onClick={() => setPlan(p.name)}
+                  onClick={() => {
+                    setPlan(p.name);
+                    sessionStorage.setItem("invest_plan", p.name);
+                  }}
                   className={`relative p-5 rounded-xl border-2 text-left transition-all ${
                     plan === p.name
                       ? "bg-gradient-to-r from-blue-600 to-violet-600 text-white border-transparent shadow-lg shadow-blue-500/20"
