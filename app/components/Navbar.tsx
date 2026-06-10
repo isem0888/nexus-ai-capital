@@ -36,7 +36,7 @@ export default function Navbar() {
 
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 z-50 border-b border-slate-200 bg-white/80 backdrop-blur-xl">
+      <header className="fixed top-0 left-0 right-0 z-50 border-b border-slate-800/60 bg-slate-950/90 backdrop-blur-xl">
         <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 lg:px-8">
           <Link href="/" className="flex items-center gap-3">
             <img
@@ -60,8 +60,8 @@ export default function Navbar() {
               href="/"
               className={`px-3 xl:px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                 pathname === "/"
-                  ? "text-blue-600 bg-blue-50"
-                  : "text-slate-600 hover:text-blue-600 hover:bg-slate-50"
+                  ? "text-blue-400 bg-blue-500/10"
+                  : "text-slate-300 hover:text-white hover:bg-slate-800/60"
               }`}
             >
               Home
@@ -70,8 +70,8 @@ export default function Navbar() {
               href="/roadmap"
               className={`px-3 xl:px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                 pathname === "/roadmap"
-                  ? "text-blue-600 bg-blue-50"
-                  : "text-slate-600 hover:text-blue-600 hover:bg-slate-50"
+                  ? "text-blue-400 bg-blue-500/10"
+                  : "text-slate-300 hover:text-white hover:bg-slate-800/60"
               }`}
             >
               Roadmap
@@ -80,8 +80,8 @@ export default function Navbar() {
               href="/invest"
               className={`px-3 xl:px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                 pathname === "/invest"
-                  ? "text-blue-600 bg-blue-50"
-                  : "text-slate-600 hover:text-blue-600 hover:bg-slate-50"
+                  ? "text-blue-400 bg-blue-500/10"
+                  : "text-slate-300 hover:text-white hover:bg-slate-800/60"
               }`}
             >
               Invest
@@ -91,14 +91,14 @@ export default function Navbar() {
           {/* CTA buttons - Right side */}
           <div className="hidden lg:flex items-center gap-3">
             {!isConnected ? (
-              <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2">
+              <div className="bg-slate-900 border border-slate-700 rounded-xl px-4 py-2">
                 <ConnectWallet />
               </div>
             ) : (
               <>
-                <div className="px-4 py-2 rounded-xl bg-slate-50 border border-slate-200">
+                <div className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-700">
                   <div className="text-xs text-slate-500 mb-0.5">Connected</div>
-                  <div className="text-sm font-mono text-blue-600 font-semibold">
+                  <div className="text-sm font-mono text-blue-400 font-semibold">
                     {address?.slice(0, 6)}...{address?.slice(-4)}
                   </div>
                 </div>
@@ -123,7 +123,7 @@ export default function Navbar() {
           {/* Mobile menu button */}
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="lg:hidden p-2 text-slate-600 hover:text-blue-600"
+            className="lg:hidden p-2 text-slate-400 hover:text-white"
             aria-label="Toggle menu"
           >
             <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -138,7 +138,7 @@ export default function Navbar() {
 
         {/* Mobile menu */}
         {mobileOpen && (
-          <div className="lg:hidden border-t border-slate-200 bg-white">
+          <div className="lg:hidden border-t border-slate-800 bg-slate-950">
             <ul className="flex flex-col px-6 py-4 gap-1">
               <li>
                 <Link
@@ -146,8 +146,8 @@ export default function Navbar() {
                   onClick={() => setMobileOpen(false)}
                   className={`block px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
                     pathname === "/"
-                      ? "text-blue-600 bg-blue-50"
-                      : "text-slate-600 hover:text-blue-600 hover:bg-slate-50"
+                      ? "text-blue-400 bg-blue-500/10"
+                      : "text-slate-300 hover:text-white hover:bg-slate-800/60"
                   }`}
                 >
                   Home
@@ -159,8 +159,8 @@ export default function Navbar() {
                   onClick={() => setMobileOpen(false)}
                   className={`block px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
                     pathname === "/roadmap"
-                      ? "text-blue-600 bg-blue-50"
-                      : "text-slate-600 hover:text-blue-600 hover:bg-slate-50"
+                      ? "text-blue-400 bg-blue-500/10"
+                      : "text-slate-300 hover:text-white hover:bg-slate-800/60"
                   }`}
                 >
                   Roadmap
@@ -172,24 +172,24 @@ export default function Navbar() {
                   onClick={() => setMobileOpen(false)}
                   className={`block px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
                     pathname === "/invest"
-                      ? "text-blue-600 bg-blue-50"
-                      : "text-slate-600 hover:text-blue-600 hover:bg-slate-50"
+                      ? "text-blue-400 bg-blue-500/10"
+                      : "text-slate-300 hover:text-white hover:bg-slate-800/60"
                   }`}
                 >
                   Invest
                 </Link>
               </li>
 
-              <li className="pt-3 border-t border-slate-200 mt-2">
+              <li className="pt-3 border-t border-slate-800 mt-2">
                 {!isConnected ? (
-                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
+                  <div className="bg-slate-900 border border-slate-700 rounded-xl p-3">
                     <ConnectWallet />
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    <div className="px-4 py-2 rounded-xl bg-slate-50 border border-slate-200">
+                    <div className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-700">
                       <div className="text-xs text-slate-500 mb-0.5">Connected Wallet</div>
-                      <div className="text-sm font-mono text-blue-600 font-semibold break-all">
+                      <div className="text-sm font-mono text-blue-400 font-semibold break-all">
                         {address}
                       </div>
                     </div>
