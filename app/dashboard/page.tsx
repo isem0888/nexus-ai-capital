@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useAccount } from "wagmi";
+import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import WithdrawModal from "../components/WithdrawModal";
@@ -375,6 +376,9 @@ function SettingsSection({ address }: { address?: string }) {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function DashboardPage() {
   const { address, isConnected } = useAccount();
+  const { data: session, status } = useSession();
+  const isGoogleAuth = status === "authenticated";
+  const isAuthorized = isConnected || isGoogleAuth;
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("overview");
   const [stats, setStats] = useState({
@@ -430,10 +434,21 @@ export default function DashboardPage() {
   }, [address]);
 
   useEffect(() => {
-    if (!isConnected) router.push("/");
-  }, [isConnected, router]);
+    if (!isConnected && status !== "loading" && status !== "authenticated") router.push("/");
+  }, [isConnected, status, router]);
 
-  if (!isConnected) {
+  if (status === "loading") {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-white" style={{ background: "#020617" }}>
+        <div className="text-center px-4">
+          <div className="w-10 h-10 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <div className="text-slate-500 text-sm">Loading...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isConnected && !isGoogleAuth) {
     return (
       <div className="min-h-screen flex items-center justify-center text-white" style={{ background: "#020617" }}>
         <div className="text-center px-4">
@@ -468,11 +483,15 @@ export default function DashboardPage() {
         <div className="rounded-2xl border border-slate-700/50 bg-slate-900/60 backdrop-blur-xl p-5 md:p-7 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 md:w-14 md:h-14 rounded-xl bg-gradient-to-br from-blue-600 to-violet-600 flex items-center justify-center text-white text-lg font-bold shadow-lg shadow-blue-500/20 flex-shrink-0">
-              {address?.slice(2, 4).toUpperCase() || "?"}
+              {isConnected ? (address?.slice(2, 4).toUpperCase() || "?") : (session?.user?.name?.slice(0, 2).toUpperCase() || "G")}
             </div>
             <div className="min-w-0">
-              <div className="text-base md:text-lg font-bold text-white">My Portfolio</div>
-              <div className="text-slate-500 font-mono text-xs truncate mt-0.5">{address}</div>
+              <div className="text-base md:text-lg font-bold text-white">
+                {isGoogleAuth && !isConnected ? (session?.user?.name || "My Portfolio") : "My Portfolio"}
+              </div>
+              <div className="text-slate-500 font-mono text-xs truncate mt-0.5">
+                {isConnected ? address : session?.user?.email || ""}
+              </div>
               <div className="inline-flex items-center gap-1.5 mt-1.5 px-2.5 py-0.5 rounded-full bg-green-500/15 border border-green-500/25 text-green-400 text-xs font-semibold">
                 <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
                 Connected
