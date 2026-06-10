@@ -37,18 +37,18 @@ export default function Navbar() {
   return (
     <>
       <header className="fixed top-0 left-0 right-0 z-50 border-b border-slate-800/60 bg-slate-950/90 backdrop-blur-xl">
-        <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 lg:px-8">
+        <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-1.5 lg:px-8">
           <Link href="/" className="flex items-center gap-3">
             <img
               src="/logo.png"
               alt="Nexus AI Capital"
-              className="h-6 w-auto"
+              className="h-8 w-8 object-contain"
             />
             <div className="flex flex-col">
-              <span className="font-bold text-base bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent leading-none">
+              <span className="font-bold text-sm bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent leading-none">
                 NEXUS AI CAPITAL
               </span>
-              <span className="text-xs text-slate-500 tracking-wide">
+              <span className="text-[10px] text-slate-500 tracking-wide leading-none mt-0.5">
                 Autonomous Trading Intelligence
               </span>
             </div>
@@ -86,24 +86,12 @@ export default function Navbar() {
             >
               Invest
             </Link>
-            <Link
-              href="/whitepaper"
-              className={`px-3 xl:px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                pathname === "/whitepaper"
-                  ? "text-blue-400 bg-blue-500/10"
-                  : "text-slate-300 hover:text-white hover:bg-slate-800/60"
-              }`}
-            >
-              Whitepaper
-            </Link>
           </div>
 
           {/* CTA buttons - Right side */}
           <div className="hidden lg:flex items-center gap-3">
             {!isConnected ? (
-              <div className="bg-slate-900 border border-slate-700 rounded-xl px-4 py-2">
-                <ConnectWallet />
-              </div>
+              <ConnectWallet />
             ) : (
               <>
                 <div className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-700">
@@ -187,19 +175,6 @@ export default function Navbar() {
                   }`}
                 >
                   Invest
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/whitepaper"
-                  onClick={() => setMobileOpen(false)}
-                  className={`block px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
-                    pathname === "/whitepaper"
-                      ? "text-blue-400 bg-blue-500/10"
-                      : "text-slate-300 hover:text-white hover:bg-slate-800/60"
-                  }`}
-                >
-                  Whitepaper
                 </Link>
               </li>
 
