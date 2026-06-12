@@ -15,9 +15,9 @@ export default function Home() {
   const [showInvestModal, setShowInvestModal] = useState(false);
 
   const [dashboardData, setDashboardData] = useState({
-    signalsToday: 12847 + Math.floor(Math.random() * 500),
-    assetsMonitored: 4300 + Math.floor(Math.random() * 200),
-    activeStrategies: 24 + Math.floor(Math.random() * 8),
+    signalsToday: 4755 + Math.floor(Math.random() * (9363 - 4755)),
+    assetsMonitored: 3189 + Math.floor(Math.random() * (6103 - 3189)),
+    activeStrategies: 9 + Math.floor(Math.random() * (41 - 9)),
     aiEfficiency: 94,
     marketCoverage: 87,
     executionSpeed: 99,
@@ -33,6 +33,9 @@ export default function Home() {
   });
 
   const [liveStats, setLiveStats] = useState(getRandomStats);
+
+  // AUM: змінюється кожні 12 годин в діапазоні 900–1100 (млн)
+  const [aumValue, setAumValue] = useState<number>(() => 900 + Math.floor(Math.random() * 201));
 
   // Performance Dashboard State
   // Jan–May фіксовані, Jun змінюється кожні 30 сек
@@ -280,18 +283,36 @@ export default function Home() {
   );
 
   useEffect(() => {
+    // AI-panel stats (2 сек)
     const statsInterval = setInterval(() => {
       setDashboardData((prev) => ({
         ...prev,
-        signalsToday: prev.signalsToday + Math.floor(Math.random() * 47) + 3,
-        assetsMonitored: prev.assetsMonitored + (Math.random() > 0.6 ? Math.floor(Math.random() * 3) - 1 : 0),
-        activeStrategies: 24 + Math.floor(Math.random() * 9),
         aiEfficiency: 92 + Math.random() * 5,
         marketCoverage: 85 + Math.random() * 6,
         executionSpeed: parseFloat((97 + Math.random() * 3).toFixed(1)),
         riskControl: 94 + Math.random() * 4,
       }));
     }, 2000);
+
+    // Signals / Assets / Strategies — кожну хвилину з кроком у заданих діапазонах
+    const bigStatsInterval = setInterval(() => {
+      setDashboardData((prev) => {
+        const sigStep = (Math.random() > 0.5 ? 1 : -1) * (7 + Math.floor(Math.random() * 133));
+        const asmStep = (Math.random() > 0.5 ? 1 : -1) * (59 + Math.floor(Math.random() * 342));
+        const strStep = (Math.random() > 0.5 ? 1 : -1) * (1 + Math.floor(Math.random() * 8));
+        return {
+          ...prev,
+          signalsToday: Math.min(9363, Math.max(4755, prev.signalsToday + sigStep)),
+          assetsMonitored: Math.min(6103, Math.max(3189, prev.assetsMonitored + asmStep)),
+          activeStrategies: Math.min(41, Math.max(9, prev.activeStrategies + strStep)),
+        };
+      });
+    }, 60000);
+
+    // AUM — кожні 12 годин
+    const aumInterval = setInterval(() => {
+      setAumValue(900 + Math.floor(Math.random() * 201));
+    }, 43200000);
 
     const liveStatsInterval = setInterval(() => {
       setLiveStats((prev) => ({
@@ -335,6 +356,8 @@ export default function Home() {
 
     return () => {
       clearInterval(statsInterval);
+      clearInterval(bigStatsInterval);
+      clearInterval(aumInterval);
       clearInterval(logsInterval);
       clearInterval(liveStatsInterval);
       clearInterval(junInterval);
@@ -1032,7 +1055,7 @@ export default function Home() {
                 Nexus is a wholly-owned subsidiary of NEXO, one of the world's leading cryptocurrency lending and wealth management platforms.
               </p>
               <div className="grid grid-cols-3 gap-3 pt-4 border-t border-white/20">
-                <div><div className="text-xl md:text-2xl font-bold text-white">$900m+</div><div className="text-xs text-white/70">AUM</div></div>
+                <div><div className="text-xl md:text-2xl font-bold text-white">{aumValue >= 1000 ? `$${(aumValue / 1000).toFixed(1)}B+` : `$${aumValue}m+`}</div><div className="text-xs text-white/70">AUM</div></div>
                 <div><div className="text-xl md:text-2xl font-bold text-white">250k+</div><div className="text-xs text-white/70">Users</div></div>
                 <div><div className="text-xl md:text-2xl font-bold text-white">20+</div><div className="text-xs text-white/70">Countries</div></div>
               </div>
