@@ -35,22 +35,31 @@ export default function Home() {
   const [liveStats, setLiveStats] = useState(getRandomStats);
 
   // Performance Dashboard State
+  // Jan–May фіксовані, Jun змінюється кожні 30 сек
+  const FIXED_MONTHS = [
+    { month: "Jan", val: 7.5, pos: true },
+    { month: "Feb", val: 10.6, pos: true },
+    { month: "Mar", val: -2.5, pos: false },
+    { month: "Apr", val: 13.9, pos: true },
+    { month: "May", val: 8.7, pos: true },
+  ];
+  const FIXED_SUM = FIXED_MONTHS.reduce((acc, m) => acc + m.val, 0); // 38.2
+
+  const [junVal, setJunVal] = useState<number>(() => +(4.6 + Math.random() * 6.9).toFixed(1));
+
+  const [monthlyReturns, setMonthlyReturns] = useState(() => [
+    ...FIXED_MONTHS,
+    { month: "Jun", val: +(4.6 + Math.random() * 6.9).toFixed(1) as number, pos: true },
+  ]);
+
+  // kpiData — totalReturn обчислюється динамічно з місяців
   const [kpiData, setKpiData] = useState({
-    totalReturn: 28.9,
+    totalReturn: +(FIXED_SUM + junVal).toFixed(1),
     sharpeRatio: 2.27,
     maxDrawdown: -3.8,
     winRate: 89.5,
     equityGrowth: 54.3,
   });
-
-  const [monthlyReturns, setMonthlyReturns] = useState([
-    { month: "Jan", val: 8.2, pos: true },
-    { month: "Feb", val: 11.4, pos: true },
-    { month: "Mar", val: -2.1, pos: false },
-    { month: "Apr", val: 14.7, pos: true },
-    { month: "May", val: 9.3, pos: true },
-    { month: "Jun", val: 6.8, pos: true },
-  ]);
 
   const [agentPerformance, setAgentPerformance] = useState([
     { agent: "Arbitrage Engine",    color: "text-blue-400",   return: 18.4, sharpe: 2.41, dd: -1.2, wr: 73.2 },
@@ -251,22 +260,7 @@ export default function Home() {
     return { time: timeString, bot: randomAction.bot, message: randomAction.message };
   }, [prices.BTC, prices.ETH]);
 
-  const kpiScenarios = Array.from({ length: 30 }, (_, i) => ({
-    totalReturn: +(28.9 + (Math.random() - 0.5) * 4).toFixed(1),
-    sharpeRatio: +(2.27 + (Math.random() - 0.5) * 0.3).toFixed(2),
-    maxDrawdown: +(-3.8 + (Math.random() - 0.5) * 1.2).toFixed(1),
-    winRate: +(89.5 + (Math.random() - 0.5) * 3).toFixed(1),
-    equityGrowth: +(54.3 + (Math.random() - 0.5) * 5).toFixed(1),
-  }));
-
-  const monthlyScenarios = Array.from({ length: 30 }, () => [
-    { month: "Jan", val: +(8.2 + (Math.random() - 0.5) * 2).toFixed(1), pos: true },
-    { month: "Feb", val: +(11.4 + (Math.random() - 0.5) * 2).toFixed(1), pos: true },
-    { month: "Mar", val: +(-2.1 + (Math.random() - 0.5) * 1).toFixed(1), pos: false },
-    { month: "Apr", val: +(14.7 + (Math.random() - 0.5) * 2.5).toFixed(1), pos: true },
-    { month: "May", val: +(9.3 + (Math.random() - 0.5) * 2).toFixed(1), pos: true },
-    { month: "Jun", val: +(6.8 + (Math.random() - 0.5) * 1.5).toFixed(1), pos: true },
-  ]);
+  // Jun оновлюється окремо кожні 30 сек, інші місяці фіксовані
 
   const agentScenarios = Array.from({ length: 30 }, () =>
     [
@@ -316,15 +310,23 @@ export default function Home() {
       });
     }, 3000);
 
-    const kpiInterval = setInterval(() => {
-      const scenarioIdx = Math.floor(Math.random() * kpiScenarios.length);
-      setKpiData(kpiScenarios[scenarioIdx]);
-    }, 6000);
-
-    const monthlyInterval = setInterval(() => {
-      const scenarioIdx = Math.floor(Math.random() * monthlyScenarios.length);
-      setMonthlyReturns(monthlyScenarios[scenarioIdx]);
-    }, 8000);
+    // Оновлення тільки June кожні 30 секунд + перерахунок YTD
+    const junInterval = setInterval(() => {
+      const newJun = +(4.6 + Math.random() * 6.9).toFixed(1);
+      setJunVal(newJun);
+      setMonthlyReturns([
+        { month: "Jan", val: 7.5, pos: true },
+        { month: "Feb", val: 10.6, pos: true },
+        { month: "Mar", val: -2.5, pos: false },
+        { month: "Apr", val: 13.9, pos: true },
+        { month: "May", val: 8.7, pos: true },
+        { month: "Jun", val: newJun, pos: newJun > 0 },
+      ]);
+      setKpiData(prev => ({
+        ...prev,
+        totalReturn: +(38.2 + newJun).toFixed(1),
+      }));
+    }, 30000);
 
     const agentInterval = setInterval(() => {
       const scenarioIdx = Math.floor(Math.random() * agentScenarios.length);
@@ -335,8 +337,7 @@ export default function Home() {
       clearInterval(statsInterval);
       clearInterval(logsInterval);
       clearInterval(liveStatsInterval);
-      clearInterval(kpiInterval);
-      clearInterval(monthlyInterval);
+      clearInterval(junInterval);
       clearInterval(agentInterval);
     };
   }, [generateLogMessage]);
