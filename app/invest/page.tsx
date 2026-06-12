@@ -126,53 +126,59 @@ export default function InvestPage() {
   const { writeContract, isPending: isContractPending } = useWriteContract();
 
   const assetPlans: Record<string, { name: string; apr: number; lock: string; popular?: boolean }[]> = {
+    // ETH, USDT, SOL: 90D — математична солодка точка (APR/день різко падає після 90D)
     ETH: [
       { name: "Flexible", apr: +flexApr.ETH, lock: "No lock period" },
       { name: "30 Days", apr: 11.9, lock: "30 days lock" },
-      { name: "90 Days", apr: 13.5, lock: "90 days lock", popular: true },
-      { name: "180 Days", apr: 14.8, lock: "180 days lock" },
+      { name: "90 Days", apr: 15.6, lock: "90 days lock", popular: true },
+      { name: "180 Days", apr: 17.1, lock: "180 days lock" },
     ],
     BTC: [
+      // Лінійний приріст — немає явного переможця
       { name: "Flexible", apr: +flexApr.BTC, lock: "No lock period" },
       { name: "30 Days", apr: 8.2, lock: "30 days lock" },
-      { name: "90 Days", apr: 10.1, lock: "90 days lock", popular: true },
-      { name: "180 Days", apr: 12.0, lock: "180 days lock" },
+      { name: "90 Days", apr: 10.5, lock: "90 days lock" },
+      { name: "180 Days", apr: 13.1, lock: "180 days lock" },
     ],
     USDT: [
       { name: "Flexible", apr: +flexApr.USDT, lock: "No lock period" },
       { name: "30 Days", apr: 13.5, lock: "30 days lock" },
-      { name: "90 Days", apr: 15.8, lock: "90 days lock", popular: true },
-      { name: "180 Days", apr: 18.0, lock: "180 days lock" },
+      { name: "90 Days", apr: 18.2, lock: "90 days lock", popular: true },
+      { name: "180 Days", apr: 19.8, lock: "180 days lock" },
     ],
     SOL: [
       { name: "Flexible", apr: +flexApr.SOL, lock: "No lock period" },
       { name: "30 Days", apr: 12.8, lock: "30 days lock" },
-      { name: "90 Days", apr: 15.2, lock: "90 days lock", popular: true },
-      { name: "180 Days", apr: 17.5, lock: "180 days lock" },
+      { name: "90 Days", apr: 16.9, lock: "90 days lock", popular: true },
+      { name: "180 Days", apr: 18.4, lock: "180 days lock" },
     ],
     XRP: [
+      // Лінійний
       { name: "Flexible", apr: +flexApr.XRP, lock: "No lock period" },
-      { name: "30 Days", apr: 9.8, lock: "30 days lock" },
-      { name: "90 Days", apr: 12.3, lock: "90 days lock", popular: true },
-      { name: "180 Days", apr: 14.1, lock: "180 days lock" },
+      { name: "30 Days", apr: 9.3, lock: "30 days lock" },
+      { name: "90 Days", apr: 11.8, lock: "90 days lock" },
+      { name: "180 Days", apr: 14.4, lock: "180 days lock" },
     ],
     BNB: [
+      // Лінійний
       { name: "Flexible", apr: +flexApr.BNB, lock: "No lock period" },
       { name: "30 Days", apr: 11.2, lock: "30 days lock" },
-      { name: "90 Days", apr: 13.8, lock: "90 days lock", popular: true },
-      { name: "180 Days", apr: 16.0, lock: "180 days lock" },
+      { name: "90 Days", apr: 13.9, lock: "90 days lock" },
+      { name: "180 Days", apr: 16.7, lock: "180 days lock" },
     ],
     LINK: [
+      // Лінійний
       { name: "Flexible", apr: +flexApr.LINK, lock: "No lock period" },
       { name: "30 Days", apr: 13.9, lock: "30 days lock" },
-      { name: "90 Days", apr: 16.7, lock: "90 days lock", popular: true },
-      { name: "180 Days", apr: 19.4, lock: "180 days lock" },
+      { name: "90 Days", apr: 17.2, lock: "90 days lock" },
+      { name: "180 Days", apr: 20.8, lock: "180 days lock" },
     ],
     NEAR: [
+      // Лінійний
       { name: "Flexible", apr: +flexApr.NEAR, lock: "No lock period" },
       { name: "30 Days", apr: 15.3, lock: "30 days lock" },
-      { name: "90 Days", apr: 18.6, lock: "90 days lock", popular: true },
-      { name: "180 Days", apr: 21.8, lock: "180 days lock" },
+      { name: "90 Days", apr: 18.9, lock: "90 days lock" },
+      { name: "180 Days", apr: 22.6, lock: "180 days lock" },
     ],
   };
 
