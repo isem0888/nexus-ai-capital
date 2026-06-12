@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useAccount, useDisconnect, useSendTransaction, useWriteContract } from "wagmi";
 import { parseEther, parseUnits } from "viem";
 import ConnectWallet from "../components/ConnectWallet";
+import ChatWidget from "../components/ChatWidget";
 
 const ERC20_ABI = [
   {
@@ -42,6 +43,13 @@ export default function InvestPage() {
   const [txHash, setTxHash] = useState<string>("");
   const [errorMsg, setErrorMsg] = useState<string>("");
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [tvl, setTvl] = useState<number>(() => 300 + Math.floor(Math.random() * 111));
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTvl(300 + Math.floor(Math.random() * 111));
+    }, 3600000); // оновлення кожну годину
+    return () => clearInterval(interval);
+  }, []);
   const useScrollReveal = () => {
     const ref = useRef<HTMLDivElement>(null);
     const [visible, setVisible] = useState(false);
@@ -200,6 +208,26 @@ export default function InvestPage() {
       question: "Are there any fees?",
       answer: "Nexus AI Capital charges no deposit or management fees. The only costs are standard network gas fees paid to the blockchain itself when sending transactions. These are not controlled by us.",
     },
+    {
+      question: "What is the minimum deposit?",
+      answer: "Minimum deposits vary by asset: ETH — 0.1 ETH, BTC — 0.005 BTC, USDT — 500 USDT, SOL — 5 SOL, XRP — 500 XRP, BNB — 0.5 BNB, LINK — 50 LINK, NEAR — 200 NEAR. These minimums ensure efficient allocation across our AI trading strategies.",
+    },
+    {
+      question: "How are profits paid out?",
+      answer: "Profits accrue daily and are compounded within your investment position. At the end of your lock period (or at any time for Flexible plans), you can withdraw your principal plus all accumulated returns in a single on-chain transaction directly to your wallet.",
+    },
+    {
+      question: "Can I have multiple active investments?",
+      answer: "Yes. You can open multiple investment positions simultaneously — different assets, different plans. Each position is tracked independently in your dashboard with its own lock period, APR, and profit counter.",
+    },
+    {
+      question: "Is there a maximum deposit limit?",
+      answer: "There is no hard cap on deposits. However, for positions exceeding $500,000 equivalent, we recommend reaching out to our support team for a dedicated onboarding experience and customized terms.",
+    },
+    {
+      question: "How does the AI trading work?",
+      answer: "Nexus operates six autonomous AI agents: Arbitrage Engine, Macro Intelligence, Risk Control, Liquidity Mining, Options Income, and Dual Currency. Each agent runs its own strategy 24/7, and the Risk Control agent dynamically allocates capital between them based on market conditions to maximize risk-adjusted returns.",
+    },
   ];
 
   const whyNexus = [
@@ -342,43 +370,40 @@ export default function InvestPage() {
         </div>
 
         {/* TVL Banner */}
-        <div className="mb-8 rounded-2xl border border-blue-500/20 bg-gradient-to-r from-blue-500/10 via-violet-500/10 to-blue-500/10 backdrop-blur-xl p-5">
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-10">
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center flex-shrink-0">
-                <svg className="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div>
-                <div className="text-xs text-slate-400 uppercase tracking-widest mb-0.5">Total Value Locked</div>
-                <div className="text-2xl font-black text-white">$159M+</div>
-              </div>
+        <div className="mb-8 flex justify-center">
+          <div className="inline-flex items-center gap-4 rounded-2xl border border-blue-500/20 bg-gradient-to-r from-blue-500/10 via-violet-500/10 to-blue-500/10 backdrop-blur-xl px-8 py-5">
+            <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+              <svg className="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
             </div>
-            <div className="hidden sm:block w-px h-10 bg-slate-700/60" />
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl bg-violet-500/20 flex items-center justify-center flex-shrink-0">
-                <svg className="w-5 h-5 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-              </div>
-              <div>
-                <div className="text-xs text-slate-400 uppercase tracking-widest mb-0.5">Active Investors</div>
-                <div className="text-2xl font-black text-white">12,400+</div>
-              </div>
+            <div>
+              <div className="text-xs text-slate-400 uppercase tracking-widest mb-0.5">Total Value Locked</div>
+              <div className="text-2xl font-black text-white">${tvl}M+</div>
             </div>
-            <div className="hidden sm:block w-px h-10 bg-slate-700/60" />
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
-                <svg className="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                </svg>
+          </div>
+        </div>
+
+        {/* Avg APR by Asset */}
+        <div className="mb-8 rounded-2xl border border-slate-700/50 bg-slate-900/60 backdrop-blur-xl p-5">
+          <div className="text-xs text-slate-500 uppercase tracking-widest text-center mb-4">
+            Average APR across all plans · Last 2 years
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { asset: "ETH", avg: "12.3%", min: "8.87%", max: "14.8%", color: "blue" },
+              { asset: "USDT", avg: "14.5%", min: "10.5%", max: "18.0%", color: "emerald" },
+              { asset: "BTC", avg: "9.2%", min: "6.5%", max: "12.0%", color: "amber" },
+            ].map(({ asset, avg, min, max, color }) => (
+              <div key={asset} className={`rounded-xl border border-${color}-500/20 bg-${color}-500/5 p-4 text-center`}>
+                <div className={`text-xs font-bold text-${color}-400 mb-1`}>{asset}</div>
+                <div className="text-2xl font-black text-white mb-2">{avg}</div>
+                <div className="flex justify-between text-xs text-slate-500">
+                  <span>min {min}</span>
+                  <span>max {max}</span>
+                </div>
               </div>
-              <div>
-                <div className="text-xs text-slate-400 uppercase tracking-widest mb-0.5">Avg. APR</div>
-                <div className="text-2xl font-black text-emerald-400">13.5%</div>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
 
@@ -940,6 +965,8 @@ export default function InvestPage() {
           </div>
         </div>
       )}
+
+      <ChatWidget />
     </main>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import DisconnectOnLoad from "../app/components/DisconnectOnLoad";
 import "@rainbow-me/rainbowkit/styles.css";
 
 import {
@@ -25,6 +26,9 @@ const config = getDefaultConfig({
   appName: "Nexus AI Capital",
   projectId: "be3e828a71c51f172afad1ffa0a8e19b",
   chains: [mainnet, base],
+  ssr: true,
+
+  storage: undefined,
 });
 
 const queryClient = new QueryClient();
@@ -34,12 +38,16 @@ export default function WalletProvider({
 }: {
   children: React.ReactNode;
 }) {
+    if (typeof window !== "undefined") {
+  localStorage.removeItem("wagmi.store");
+}
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
         <RainbowKitProvider>
-          {children}
-        </RainbowKitProvider>
+  <DisconnectOnLoad />
+  {children}
+</RainbowKitProvider>
       </QueryClientProvider>
     </WagmiProvider>
   );

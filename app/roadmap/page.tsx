@@ -390,15 +390,7 @@ export default function RoadmapPage() {
             { text: "NEAR Investment Plans", status: "done" },
           ],
         },
-        {
-          name: "Platform Features",
-          items: [
-            { text: "Mobile Application (iOS / Android)", status: "progress" },
-            { text: "Advanced Portfolio Analytics", status: "progress" },
-            { text: "Auto-Compounding Strategies", status: "progress" },
-            { text: "AI Risk Monitoring System", status: "progress" },
-          ],
-        },
+
       ],
     },
     {
