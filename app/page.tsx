@@ -869,9 +869,13 @@ export default function Home() {
                     <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
                   </linearGradient>
                 </defs>
-                <path d="M0,85 C20,80 30,75 50,70 C70,65 80,60 100,52 C120,44 130,48 150,40 C170,32 180,35 200,28 C220,21 240,18 260,14 C280,10 290,8 300,5" fill="none" stroke="#3b82f6" strokeWidth="2" />
-                <path d="M0,85 C20,80 30,75 50,70 C70,65 80,60 100,52 C120,44 130,48 150,40 C170,32 180,35 200,28 C220,21 240,18 260,14 C280,10 290,8 300,5 L300,100 L0,100 Z" fill="url(#equityGrad)" />
-                <path d="M120,44 C125,46 130,50 135,48" fill="none" stroke="#f59e0b" strokeWidth="2" strokeDasharray="3,2" />
+                {/* Step line: горизонталь → вертикаль */}
+                <path d="M0,85 H50 V70 H100 V52 H150 V40 H200 V28 H300 V5" fill="none" stroke="#3b82f6" strokeWidth="2" />
+                <path d="M0,85 H50 V70 H100 V52 H150 V40 H200 V28 H300 V5 L300,100 L0,100 Z" fill="url(#equityGrad)" />
+                {/* Точки на переломах */}
+                {[[50,70],[100,52],[150,40],[200,28],[300,5]].map(([x,y]) => (
+                  <circle key={`${x}-${y}`} cx={x} cy={y} r="2.5" fill="#3b82f6" stroke="#1e3a8a" strokeWidth="1" />
+                ))}
               </svg>
               <div className="absolute bottom-0 left-0 right-0 flex justify-between text-[10px] text-slate-600 px-1">
                 <span>Jan</span> <span>Feb</span> <span>Mar</span> <span>Apr</span> <span>May</span> <span>Jun</span>
