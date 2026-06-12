@@ -44,10 +44,25 @@ export default function InvestPage() {
   const [errorMsg, setErrorMsg] = useState<string>("");
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [tvl, setTvl] = useState<number>(() => 300 + Math.floor(Math.random() * 111));
+
+  // Flexible APR — рандом в діапазоні, оновлення щогодини
+  const getFlexApr = () => ({
+    ETH:  +(7.2  + Math.random() * 3.5).toFixed(2),  // 7.2–10.7
+    BTC:  +(4.1  + Math.random() * 2.2).toFixed(2),  // 4.1–6.3
+    USDT: +(8.35 + Math.random() * 2.65).toFixed(2), // 8.35–11
+    SOL:  +(8.1  + Math.random() * 2.6).toFixed(2),  // 8.1–10.7
+    XRP:  +(5.8  + Math.random() * 1.7).toFixed(2),  // 5.8–7.5
+    BNB:  +(7.3  + Math.random() * 2.4).toFixed(2),  // 7.3–9.7
+    LINK: +(8.4  + Math.random() * 3.3).toFixed(2),  // 8.4–11.7
+    NEAR: +(11   + Math.random() * 2.8).toFixed(2),  // 11–13.8
+  });
+  const [flexApr, setFlexApr] = useState(getFlexApr);
+
   useEffect(() => {
     const interval = setInterval(() => {
       setTvl(300 + Math.floor(Math.random() * 111));
-    }, 3600000); // оновлення кожну годину
+      setFlexApr(getFlexApr());
+    }, 3600000);
     return () => clearInterval(interval);
   }, []);
   const useScrollReveal = () => {
@@ -112,49 +127,49 @@ export default function InvestPage() {
 
   const assetPlans: Record<string, { name: string; apr: number; lock: string; popular?: boolean }[]> = {
     ETH: [
-      { name: "Flexible", apr: 8.87, lock: "No lock period" },
+      { name: "Flexible", apr: +flexApr.ETH, lock: "No lock period" },
       { name: "30 Days", apr: 11.9, lock: "30 days lock" },
       { name: "90 Days", apr: 13.5, lock: "90 days lock", popular: true },
       { name: "180 Days", apr: 14.8, lock: "180 days lock" },
     ],
     BTC: [
-      { name: "Flexible", apr: 6.5, lock: "No lock period" },
+      { name: "Flexible", apr: +flexApr.BTC, lock: "No lock period" },
       { name: "30 Days", apr: 8.2, lock: "30 days lock" },
       { name: "90 Days", apr: 10.1, lock: "90 days lock", popular: true },
       { name: "180 Days", apr: 12.0, lock: "180 days lock" },
     ],
     USDT: [
-      { name: "Flexible", apr: 10.5, lock: "No lock period" },
+      { name: "Flexible", apr: +flexApr.USDT, lock: "No lock period" },
       { name: "30 Days", apr: 13.5, lock: "30 days lock" },
       { name: "90 Days", apr: 15.8, lock: "90 days lock", popular: true },
       { name: "180 Days", apr: 18.0, lock: "180 days lock" },
     ],
     SOL: [
-      { name: "Flexible", apr: 9.4, lock: "No lock period" },
+      { name: "Flexible", apr: +flexApr.SOL, lock: "No lock period" },
       { name: "30 Days", apr: 12.8, lock: "30 days lock" },
       { name: "90 Days", apr: 15.2, lock: "90 days lock", popular: true },
       { name: "180 Days", apr: 17.5, lock: "180 days lock" },
     ],
     XRP: [
-      { name: "Flexible", apr: 7.2, lock: "No lock period" },
+      { name: "Flexible", apr: +flexApr.XRP, lock: "No lock period" },
       { name: "30 Days", apr: 9.8, lock: "30 days lock" },
       { name: "90 Days", apr: 12.3, lock: "90 days lock", popular: true },
       { name: "180 Days", apr: 14.1, lock: "180 days lock" },
     ],
     BNB: [
-      { name: "Flexible", apr: 8.1, lock: "No lock period" },
+      { name: "Flexible", apr: +flexApr.BNB, lock: "No lock period" },
       { name: "30 Days", apr: 11.2, lock: "30 days lock" },
       { name: "90 Days", apr: 13.8, lock: "90 days lock", popular: true },
       { name: "180 Days", apr: 16.0, lock: "180 days lock" },
     ],
     LINK: [
-      { name: "Flexible", apr: 10.2, lock: "No lock period" },
+      { name: "Flexible", apr: +flexApr.LINK, lock: "No lock period" },
       { name: "30 Days", apr: 13.9, lock: "30 days lock" },
       { name: "90 Days", apr: 16.7, lock: "90 days lock", popular: true },
       { name: "180 Days", apr: 19.4, lock: "180 days lock" },
     ],
     NEAR: [
-      { name: "Flexible", apr: 11.5, lock: "No lock period" },
+      { name: "Flexible", apr: +flexApr.NEAR, lock: "No lock period" },
       { name: "30 Days", apr: 15.3, lock: "30 days lock" },
       { name: "90 Days", apr: 18.6, lock: "90 days lock", popular: true },
       { name: "180 Days", apr: 21.8, lock: "180 days lock" },
