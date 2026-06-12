@@ -869,11 +869,11 @@ export default function Home() {
                     <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
                   </linearGradient>
                 </defs>
-                {/* Step line: горизонталь → вертикаль */}
-                <path d="M0,85 H50 V70 H100 V52 H150 V40 H200 V28 H300 V5" fill="none" stroke="#3b82f6" strokeWidth="2" />
-                <path d="M0,85 H50 V70 H100 V52 H150 V40 H200 V28 H300 V5 L300,100 L0,100 Z" fill="url(#equityGrad)" />
+                {/* Step line: Jan+7.5% Feb+10.6% Mar-2.5%(dip) Apr+13.9% May+8.7% Jun~+8.9% */}
+                <path d="M0,85 H50 V72 H100 V54 H150 V58 H200 V34 H250 V19 H300 V4" fill="none" stroke="#3b82f6" strokeWidth="2" />
+                <path d="M0,85 H50 V72 H100 V54 H150 V58 H200 V34 H250 V19 H300 V4 L300,100 L0,100 Z" fill="url(#equityGrad)" />
                 {/* Точки на переломах */}
-                {[[50,70],[100,52],[150,40],[200,28],[300,5]].map(([x,y]) => (
+                {[[50,72],[100,54],[150,58],[200,34],[250,19],[300,4]].map(([x,y]) => (
                   <circle key={`${x}-${y}`} cx={x} cy={y} r="2.5" fill="#3b82f6" stroke="#1e3a8a" strokeWidth="1" />
                 ))}
               </svg>
