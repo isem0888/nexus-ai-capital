@@ -302,13 +302,23 @@ function daysLeft(settlementAt: string | null): number | null {
 function InvestmentsSection({ address }: { address?: string }) {
   const [investments, setInvestments] = useState<any[]>([]);
 
+  const storageKey = address ? `nx_inv_${address}` : "nx_inv_guest";
+
   useEffect(() => {
     try {
-      const key = address ? `nx_inv_${address}` : "nx_inv_guest";
-      const data = JSON.parse(localStorage.getItem(key) || "[]");
-      setInvestments(data.reverse()); // найновіші зверху
+      const data = JSON.parse(localStorage.getItem(storageKey) || "[]");
+      setInvestments([...data].reverse());
     } catch {}
   }, [address]);
+
+  const removeInvestment = (id: string) => {
+    try {
+      const updated = JSON.parse(localStorage.getItem(storageKey) || "[]")
+        .filter((inv: any) => inv.id !== id);
+      localStorage.setItem(storageKey, JSON.stringify(updated));
+      setInvestments([...updated].reverse());
+    } catch {}
+  };
 
   if (investments.length === 0) {
     return (
@@ -378,6 +388,15 @@ function InvestmentsSection({ address }: { address?: string }) {
                   <span className="px-2.5 py-1 rounded-full bg-green-500/15 border border-green-500/30 text-green-400 text-xs font-semibold">
                     Active
                   </span>
+                  <button
+                    onClick={() => removeInvestment(inv.id)}
+                    title="Remove investment"
+                    className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-600 hover:text-red-400 hover:bg-red-500/10 transition ml-1"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
                 </div>
               </div>
 
