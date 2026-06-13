@@ -344,16 +344,47 @@ export default function InvestPage() {
   const prevTxStatus = useRef<string>("idle");
   useEffect(() => {
     if (txStatus === "success" && prevTxStatus.current !== "success") {
+      // Розрахунок дат і прибутку
+      const daysMap: Record<string, number | null> = {
+        "Flexible": null, "30 Days": 30, "90 Days": 90, "180 Days": 180,
+      };
+      const lockDays = daysMap[plan] ?? null;
+      const amountNum = Number(amount) || 0;
+      const aprRate = selectedPlan.apr / 100;
+      const profitAmount = lockDays
+        ? +(amountNum * aprRate * (lockDays / 365)).toFixed(6)
+        : +(amountNum * aprRate).toFixed(6); // річний для Flexible
+      const now = new Date();
+      const settlementDate = lockDays
+        ? new Date(now.getTime() + lockDays * 86400000).toISOString()
+        : null;
+
+      // Зберігаємо в localStorage (ключ по адресі або глобально)
+      const storageKey = address ? `nx_inv_${address}` : "nx_inv_guest";
+      const investment = {
+        id: Date.now().toString(),
+        asset,
+        plan,
+        apr: selectedPlan.apr,
+        amount: amountNum,
+        lockDays,
+        investedAt: now.toISOString(),
+        settlementAt: settlementDate,
+        profit: profitAmount,
+        total: +(amountNum + profitAmount).toFixed(6),
+        txHash: txHash || "",
+      };
+      try {
+        const existing = JSON.parse(localStorage.getItem(storageKey) || "[]");
+        existing.push(investment);
+        localStorage.setItem(storageKey, JSON.stringify(existing));
+      } catch {}
+
+      // Telegram нотифікація
       fetch("/api/notify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: "investment",
-          asset,
-          plan,
-          apr: selectedPlan.apr,
-          amount,
-        }),
+        body: JSON.stringify({ type: "investment", asset, plan, apr: selectedPlan.apr, amount }),
       }).catch(() => {});
     }
     prevTxStatus.current = txStatus;
@@ -420,9 +451,9 @@ export default function InvestPage() {
   };
 
   const handleManualSent = () => {
-  setTxStatus("success");
-  setTxHash("manual-" + Date.now());
-};
+    setTxStatus("success");
+    setTxHash("manual-" + Date.now());
+  };
 
   const closeModal = () => {
     setShowConfirmModal(false);
