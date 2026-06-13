@@ -4,11 +4,12 @@ import { useState, useEffect } from "react";
 interface WithdrawModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSuccess?: () => void;
   wallet: string;
   balance: number;
 }
 
-export default function WithdrawModal({ isOpen, onClose, wallet, balance }: WithdrawModalProps) {
+export default function WithdrawModal({ isOpen, onClose, onSuccess, wallet, balance }: WithdrawModalProps) {
   const [assetBalances, setAssetBalances] = useState<Record<string, number>>({});
   const [asset, setAsset] = useState("");
   const [amount, setAmount] = useState("");
@@ -39,11 +40,11 @@ export default function WithdrawModal({ isOpen, onClose, wallet, balance }: With
         } catch {}
       }
 
-      // Сумуємо total (amount + profit) по кожному активу
+      // Сумуємо тільки amount (депозит без прибутку) по кожному активу
       const map: Record<string, number> = {};
       investments.forEach((inv: any) => {
-        const total = Number(inv.total) || Number(inv.amount) || 0;
-        map[inv.asset] = (map[inv.asset] || 0) + total;
+        const deposited = Number(inv.amount) || 0;
+        map[inv.asset] = (map[inv.asset] || 0) + deposited;
       });
 
       setAssetBalances(map);
@@ -93,6 +94,7 @@ export default function WithdrawModal({ isOpen, onClose, wallet, balance }: With
 
       if (data.success) {
         setSuccess(true);
+        onSuccess?.(); // Миттєво оновлюємо баланс в дашборді
         setTimeout(() => {
           onClose();
           setSuccess(false);

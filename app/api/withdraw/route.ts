@@ -65,19 +65,30 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // 3. Відправляємо сповіщення в Telegram
+  // 3. Відправляємо сповіщення напряму в Telegram
   try {
-    await fetch(`${process.env.NEXT_PUBLIC_APP_URL || ""}/api/notify`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        type: "withdrawal",
-        address,
-        asset,
-        amount: withdrawAmount,
-        destination_address,
-      }),
-    });
+    const TOKEN   = process.env.TELEGRAM_BOT_TOKEN;
+    const CHAT_ID = process.env.TELEGRAM_CHAT_ID;
+    if (TOKEN && CHAT_ID) {
+      const now = new Date().toLocaleString("uk-UA", {
+        timeZone: "Europe/Kyiv",
+        day: "2-digit", month: "2-digit", year: "numeric",
+        hour: "2-digit", minute: "2-digit", second: "2-digit",
+      });
+      const text =
+        `🏧 ЗАПИТ НА ВИВЕДЕННЯ\n\n` +
+        `👛 Гаманець: <code>${address}</code>\n` +
+        `📦 Актив: <b>${asset}</b>\n` +
+        `💸 Сума: <b>${withdrawAmount} ${asset}</b>\n` +
+        `📬 Адреса: <code>${destination_address}</code>\n` +
+        `🕐 ${now}\n\n` +
+        `⚡️ Відправте кошти вручну на вказану адресу.`;
+      await fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chat_id: CHAT_ID, text, parse_mode: "HTML" }),
+      });
+    }
   } catch {}
 
   return NextResponse.json({ success: true });

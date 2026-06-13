@@ -839,6 +839,7 @@ export default function DashboardPage() {
     pendingWithdrawals: 0,
   });
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
   const [prices, setPrices] = useState({ BTC: 0, ETH: 0, USDT: 1 });
 
   useEffect(() => {
@@ -913,7 +914,7 @@ export default function DashboardPage() {
     }
 
     calcStats();
-  }, [address, prices.ETH, prices.BTC]);
+  }, [address, prices.ETH, prices.BTC, refreshKey]);
 
   useEffect(() => {
     // Wait for wagmi to finish reconnecting before redirecting.
@@ -1028,6 +1029,7 @@ export default function DashboardPage() {
       <WithdrawModal
         isOpen={showWithdrawModal}
         onClose={() => setShowWithdrawModal(false)}
+        onSuccess={() => setRefreshKey(k => k + 1)}
         wallet={address || ""}
         balance={stats.totalBalance}
       />
