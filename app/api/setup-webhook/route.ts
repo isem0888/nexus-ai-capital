@@ -4,7 +4,7 @@ const TOKEN = process.env.TELEGRAM_BOT_TOKEN!;
 const DOMAIN = process.env.NEXTAUTH_URL || "https://www.nexus-ai-capital.com";
 
 export async function GET() {
-  const webhookUrl = `${DOMAIN.replace(/\/$/, "")}/api/telegram-webhook`;
+  const webhookUrl = `${DOMAIN.replace(/\/$/, "")}/api/telegram`;
 
   // Спочатку видаляємо старий webhook
   await fetch(`https://api.telegram.org/bot${TOKEN}/deleteWebhook`, {
