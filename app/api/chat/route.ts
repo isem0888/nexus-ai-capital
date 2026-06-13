@@ -34,21 +34,26 @@ export async function POST(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  // Forward to Telegram — НЕ використовуємо parse_mode, щоб підкреслення у session_id не ламало текст
+  // Forward to Telegram
   const tgText =
     `💬 Nexus Support — нове повідомлення\n\n` +
-    `Session: ${session_id}\n` +
-    (page_url ? `Page: ${page_url}\n` : "") +
+    (page_url ? `🌐 Page: ${page_url}\n` : "") +
     `\n${message}`;
 
-  await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+  const tgRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      chat_id: CHAT_ID,
-      text: tgText,
-    }),
+    body: JSON.stringify({ chat_id: CHAT_ID, text: tgText }),
   });
+  const tgData = await tgRes.json();
+
+  // Зберігаємо tg_message_id → session_id, щоб webhook міг знайти сесію через Reply
+  if (tgData.ok && tgData.result?.message_id) {
+    await supabase.from("tg_message_sessions").insert({
+      tg_message_id: tgData.result.message_id,
+      session_id,
+    });
+  }
 
   return NextResponse.json({ success: true });
 }

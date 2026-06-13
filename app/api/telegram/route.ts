@@ -73,20 +73,21 @@ export async function POST(req: NextRequest) {
     }
 
     // ── 2. Адмін відповідає на повідомлення підтримки ───────────────────────
-    // Коли ти робиш Reply на повідомлення в TG — бот отримує message з reply_to_message
+    // Шукаємо session_id через tg_message_id маппінг — надійніше ніж парсинг тексту
     if (body.message?.reply_to_message) {
       const replyText: string = body.message.text || "";
-      const originalText: string = body.message.reply_to_message.text || "";
+      const replyToMsgId: number = body.message.reply_to_message.message_id;
 
-      // Шукаємо session_id у тексті оригінального повідомлення (формат: Session: `abc123`)
-      const match = originalText.match(/Session:\s*`?([a-zA-Z0-9_-]+)`?/);
-      if (match) {
-        const session_id = match[1];
+      const { data: sessionRow } = await supabase
+        .from("tg_message_sessions")
+        .select("session_id")
+        .eq("tg_message_id", replyToMsgId)
+        .single();
 
-        // Зберігаємо відповідь в chat_messages — chat widget одразу отримає її через polling
+      if (sessionRow?.session_id) {
         await supabase.from("chat_messages").insert({
           id: `msg_${Date.now()}`,
-          session_id,
+          session_id: sessionRow.session_id,
           sender: "admin",
           message: replyText,
         });
