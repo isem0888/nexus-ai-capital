@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useAccount, useDisconnect, useSendTransaction, useWriteContract } from "wagmi";
 import { parseEther, parseUnits } from "viem";
 import ConnectWallet from "../components/ConnectWallet";
@@ -24,6 +25,7 @@ const USDT_CONTRACT = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
 export default function InvestPage() {
   const { isConnected, address } = useAccount();
   const { disconnect } = useDisconnect();
+  const router = useRouter();
 
   const [asset, setAsset] = useState<string>("ETH");
   const [plan, setPlan] = useState<string>("Flexible");
@@ -36,6 +38,7 @@ export default function InvestPage() {
     if (savedAsset) setAsset(savedAsset);
     if (savedPlan) setPlan(savedPlan);
   }, []);
+
   const [depositMethod, setDepositMethod] = useState<"wallet" | "manual">("wallet");
   const [copied, setCopied] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -43,6 +46,16 @@ export default function InvestPage() {
   const [txHash, setTxHash] = useState<string>("");
   const [errorMsg, setErrorMsg] = useState<string>("");
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [showFlexTooltip, setShowFlexTooltip] = useState(false);
+
+  // Закриваємо тултіп Flexible при кліку поза ним
+  useEffect(() => {
+    if (!showFlexTooltip) return;
+    const handler = () => setShowFlexTooltip(false);
+    document.addEventListener("click", handler);
+    return () => document.removeEventListener("click", handler);
+  }, [showFlexTooltip]);
+
   // TVL — зберігається в localStorage, крок 1–4M кожні 6 годин
   const [tvl, setTvl] = useState<number>(() => {
     if (typeof window === "undefined") return 307;
@@ -69,7 +82,6 @@ export default function InvestPage() {
     NEAR: [11.0, 12.5],
   };
 
-  // Початкові значення APR (рандом в діапазоні)
   const initFlexApr = (): Record<string, number> => {
     const r: Record<string, number> = {};
     for (const [a, [min, max]] of Object.entries(APR_RANGES))
@@ -77,7 +89,6 @@ export default function InvestPage() {
     return r;
   };
 
-  // Крок ±1.25% зі збереженням в межах діапазону
   const stepFlexApr = (prev: Record<string, number>): Record<string, number> => {
     const r: Record<string, number> = {};
     for (const [a, [min, max]] of Object.entries(APR_RANGES)) {
@@ -121,6 +132,7 @@ export default function InvestPage() {
 
     return () => { clearInterval(tvlInterval); clearInterval(aprInterval); };
   }, []);
+
   const useScrollReveal = () => {
     const ref = useRef<HTMLDivElement>(null);
     const [visible, setVisible] = useState(false);
@@ -164,7 +176,6 @@ export default function InvestPage() {
           NEAR: parseFloat(results[6].price),
         });
       } catch {
-        // Fallback: ~$500 equivalent static values
         setPrices({ ETH: 1630, BTC: 61000, USDT: 1, SOL: 65, XRP: 1.17, BNB: 580, LINK: 8, NEAR: 2.1 });
       }
     }
@@ -182,80 +193,74 @@ export default function InvestPage() {
   const { writeContract, isPending: isContractPending } = useWriteContract();
 
   const assetPlans: Record<string, { name: string; apr: number; lock: string; popular?: boolean }[]> = {
-    // ETH, USDT, SOL: 90D — математична солодка точка (APR/день різко падає після 90D)
     ETH: [
       { name: "Flexible", apr: +flexApr.ETH, lock: "No lock period" },
-      { name: "30 Days", apr: 11.9, lock: "30 days lock" },
-      { name: "90 Days", apr: 15.6, lock: "90 days lock", popular: true },
+      { name: "30 Days",  apr: 11.9, lock: "30 days lock" },
+      { name: "90 Days",  apr: 15.6, lock: "90 days lock", popular: true },
       { name: "180 Days", apr: 17.1, lock: "180 days lock" },
     ],
     BTC: [
-      // Лінійний приріст — немає явного переможця
       { name: "Flexible", apr: +flexApr.BTC, lock: "No lock period" },
-      { name: "30 Days", apr: 8.2, lock: "30 days lock" },
-      { name: "90 Days", apr: 10.5, lock: "90 days lock" },
+      { name: "30 Days",  apr: 8.2,  lock: "30 days lock" },
+      { name: "90 Days",  apr: 10.5, lock: "90 days lock" },
       { name: "180 Days", apr: 13.1, lock: "180 days lock" },
     ],
     USDT: [
       { name: "Flexible", apr: +flexApr.USDT, lock: "No lock period" },
-      { name: "30 Days", apr: 13.5, lock: "30 days lock" },
-      { name: "90 Days", apr: 16.8, lock: "90 days lock", popular: true },
+      { name: "30 Days",  apr: 13.5, lock: "30 days lock" },
+      { name: "90 Days",  apr: 16.8, lock: "90 days lock", popular: true },
       { name: "180 Days", apr: 18.2, lock: "180 days lock" },
     ],
     SOL: [
       { name: "Flexible", apr: +flexApr.SOL, lock: "No lock period" },
-      { name: "30 Days", apr: 12.8, lock: "30 days lock" },
-      { name: "90 Days", apr: 16.9, lock: "90 days lock", popular: true },
-      { name: "180 Days", apr: 18.4, lock: "180 days lock" },
+      { name: "30 Days",  apr: 10.5, lock: "30 days lock" },
+      { name: "90 Days",  apr: 13.8, lock: "90 days lock", popular: true },
+      { name: "180 Days", apr: 15.6, lock: "180 days lock" },
     ],
     XRP: [
-      // Лінійний
       { name: "Flexible", apr: +flexApr.XRP, lock: "No lock period" },
-      { name: "30 Days", apr: 9.3, lock: "30 days lock" },
-      { name: "90 Days", apr: 11.8, lock: "90 days lock" },
+      { name: "30 Days",  apr: 9.3,  lock: "30 days lock" },
+      { name: "90 Days",  apr: 11.8, lock: "90 days lock" },
       { name: "180 Days", apr: 14.4, lock: "180 days lock" },
     ],
     BNB: [
-      // Лінійний
       { name: "Flexible", apr: +flexApr.BNB, lock: "No lock period" },
-      { name: "30 Days", apr: 11.2, lock: "30 days lock" },
-      { name: "90 Days", apr: 13.9, lock: "90 days lock" },
+      { name: "30 Days",  apr: 11.2, lock: "30 days lock" },
+      { name: "90 Days",  apr: 13.9, lock: "90 days lock" },
       { name: "180 Days", apr: 16.7, lock: "180 days lock" },
     ],
     LINK: [
-      // Лінійний
       { name: "Flexible", apr: +flexApr.LINK, lock: "No lock period" },
-      { name: "30 Days", apr: 13.9, lock: "30 days lock" },
-      { name: "90 Days", apr: 17.2, lock: "90 days lock" },
+      { name: "30 Days",  apr: 13.9, lock: "30 days lock" },
+      { name: "90 Days",  apr: 17.2, lock: "90 days lock" },
       { name: "180 Days", apr: 20.8, lock: "180 days lock" },
     ],
     NEAR: [
-      // Лінійний
       { name: "Flexible", apr: +flexApr.NEAR, lock: "No lock period" },
-      { name: "30 Days", apr: 15.3, lock: "30 days lock" },
-      { name: "90 Days", apr: 18.9, lock: "90 days lock" },
+      { name: "30 Days",  apr: 15.3, lock: "30 days lock" },
+      { name: "90 Days",  apr: 18.9, lock: "90 days lock" },
       { name: "180 Days", apr: 22.6, lock: "180 days lock" },
     ],
   };
 
   const assetConfig: Record<string, { minDeposit: number; symbol: string; network: string }> = {
-    ETH: { minDeposit: 0.5, symbol: "ETH", network: "Ethereum" },
-    BTC: { minDeposit: 0.01, symbol: "BTC", network: "Bitcoin" },
+    ETH:  { minDeposit: 0.5,  symbol: "ETH",  network: "Ethereum" },
+    BTC:  { minDeposit: 0.01, symbol: "BTC",  network: "Bitcoin" },
     USDT: { minDeposit: 1000, symbol: "USDT", network: "ERC20 (Ethereum)" },
-    SOL: { minDeposit: 5, symbol: "SOL", network: "Solana" },
-    XRP: { minDeposit: 100, symbol: "XRP", network: "XRP Ledger" },
-    BNB: { minDeposit: 1, symbol: "BNB", network: "BNB Chain" },
-    LINK: { minDeposit: 10, symbol: "LINK", network: "Ethereum" },
-    NEAR: { minDeposit: 20, symbol: "NEAR", network: "NEAR Protocol" },
+    SOL:  { minDeposit: 5,    symbol: "SOL",  network: "Solana" },
+    XRP:  { minDeposit: 100,  symbol: "XRP",  network: "XRP Ledger" },
+    BNB:  { minDeposit: 1,    symbol: "BNB",  network: "BNB Chain" },
+    LINK: { minDeposit: 10,   symbol: "LINK", network: "Ethereum" },
+    NEAR: { minDeposit: 20,   symbol: "NEAR", network: "NEAR Protocol" },
   };
 
   const depositAddresses: Record<string, string> = {
-    ETH: "0x438DEF8FaaA44b9AE4693C07C04b7b47C4a2d797",
+    ETH:  "0x438DEF8FaaA44b9AE4693C07C04b7b47C4a2d797",
     USDT: "0x438DEF8FaaA44b9AE4693C07C04b7b47C4a2d797",
-    BTC: "bc1qflmk4rerlpruf5ge46gc6mlme7q99xgwdrmfxv",
-    SOL: "0x438DEF8FaaA44b9AE4693C07C04b7b47C4a2d797",
-    XRP: "0x438DEF8FaaA44b9AE4693C07C04b7b47C4a2d797",
-    BNB: "0x438DEF8FaaA44b9AE4693C07C04b7b47C4a2d797",
+    BTC:  "bc1qflmk4rerlpruf5ge46gc6mlme7q99xgwdrmfxv",
+    SOL:  "0x438DEF8FaaA44b9AE4693C07C04b7b47C4a2d797",
+    XRP:  "0x438DEF8FaaA44b9AE4693C07C04b7b47C4a2d797",
+    BNB:  "0x438DEF8FaaA44b9AE4693C07C04b7b47C4a2d797",
     LINK: "0x438DEF8FaaA44b9AE4693C07C04b7b47C4a2d797",
     NEAR: "0x438DEF8FaaA44b9AE4693C07C04b7b47C4a2d797",
   };
@@ -340,11 +345,12 @@ export default function InvestPage() {
 
   const selectedPlan = assetPlans[asset].find((p) => p.name === plan) || assetPlans[asset][0];
 
-  // Telegram — нотифікація при успішній інвестиції
-  const prevTxStatus = useRef<string>("idle");
+  // Telegram — нотифікація при успішній інвестиції (localStorage dedup)
+  const investmentSavedRef = useRef<boolean>(false);
   useEffect(() => {
-    if (txStatus === "success" && prevTxStatus.current !== "success") {
-      // Розрахунок дат і прибутку
+    if (txStatus === "success" && !investmentSavedRef.current) {
+      investmentSavedRef.current = true;
+
       const daysMap: Record<string, number | null> = {
         "Flexible": null, "30 Days": 30, "90 Days": 90, "180 Days": 180,
       };
@@ -353,16 +359,16 @@ export default function InvestPage() {
       const aprRate = selectedPlan.apr / 100;
       const profitAmount = lockDays
         ? +(amountNum * aprRate * (lockDays / 365)).toFixed(6)
-        : +(amountNum * aprRate).toFixed(6); // річний для Flexible
+        : +(amountNum * aprRate).toFixed(6);
       const now = new Date();
       const settlementDate = lockDays
         ? new Date(now.getTime() + lockDays * 86400000).toISOString()
         : null;
 
-      // Зберігаємо в localStorage (ключ по адресі або глобально)
+      const invId = Date.now().toString();
       const storageKey = address ? `nx_inv_${address}` : "nx_inv_guest";
       const investment = {
-        id: Date.now().toString(),
+        id: invId,
         asset,
         plan,
         apr: selectedPlan.apr,
@@ -380,15 +386,19 @@ export default function InvestPage() {
         localStorage.setItem(storageKey, JSON.stringify(existing));
       } catch {}
 
-      // Telegram нотифікація
-      fetch("/api/notify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "investment", asset, plan, apr: selectedPlan.apr, amount }),
-      }).catch(() => {});
+      // Dedup TG нотифікації по invId
+      const notifyKey = `nx_inv_notify_${invId}`;
+      if (!localStorage.getItem(notifyKey)) {
+        localStorage.setItem(notifyKey, "1");
+        fetch("/api/notify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ type: "investment", asset, plan, apr: selectedPlan.apr, amount }),
+        }).catch(() => {});
+      }
     }
-    prevTxStatus.current = txStatus;
   }, [txStatus]);
+
   const depositAmount = Number(amount) || 0;
   const profit = (depositAmount * selectedPlan.apr) / 100;
   const total = depositAmount + profit;
@@ -475,10 +485,7 @@ export default function InvestPage() {
         backgroundAttachment: "fixed",
       }}
     >
-      {/* Dark overlay */}
       <div className="absolute inset-0 bg-slate-950/75 pointer-events-none" />
-
-
 
       <div className="relative z-10 max-w-4xl mx-auto px-4 md:px-6 pt-16 pb-24">
 
@@ -518,9 +525,9 @@ export default function InvestPage() {
           </div>
           <div className="grid grid-cols-3 gap-3">
             {[
-              { asset: "ETH", avg: "12.3%", min: "8.87%", max: "14.8%", color: "blue" },
+              { asset: "ETH",  avg: "12.3%", min: "8.87%", max: "14.8%", color: "blue" },
               { asset: "USDT", avg: "14.5%", min: "10.5%", max: "18.0%", color: "emerald" },
-              { asset: "BTC", avg: "9.2%", min: "6.5%", max: "12.0%", color: "amber" },
+              { asset: "BTC",  avg: "9.2%",  min: "6.5%",  max: "12.0%", color: "amber" },
             ].map(({ asset, avg, min, max, color }) => (
               <div key={asset} className={`rounded-xl border border-${color}-500/20 bg-${color}-500/5 p-4 text-center`}>
                 <div className={`text-xs font-bold text-${color}-400 mb-1`}>{asset}</div>
@@ -537,13 +544,8 @@ export default function InvestPage() {
         {/* Why Nexus */}
         <div ref={sWhy.ref} style={{ opacity: sWhy.visible ? 1 : 0, transform: sWhy.visible ? "translateY(0)" : "translateY(36px)", transition: "opacity 0.7s ease 0.1s, transform 0.7s ease 0.1s" }} className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
           {whyNexus.map((item) => (
-            <div
-              key={item.title}
-              className="rounded-2xl border border-slate-700/50 bg-slate-900/60 backdrop-blur-xl p-5 flex flex-col gap-3"
-            >
-              <div className="w-12 h-12 rounded-xl bg-slate-800/80 flex items-center justify-center">
-                {item.icon}
-              </div>
+            <div key={item.title} className="rounded-2xl border border-slate-700/50 bg-slate-900/60 backdrop-blur-xl p-5 flex flex-col gap-3">
+              <div className="w-12 h-12 rounded-xl bg-slate-800/80 flex items-center justify-center">{item.icon}</div>
               <div className="font-bold text-white text-base">{item.title}</div>
               <div className="text-slate-400 text-sm leading-relaxed">{item.desc}</div>
             </div>
@@ -615,38 +617,130 @@ export default function InvestPage() {
           <div className="mb-10">
             <h2 className="text-xl font-bold mb-5 text-white">Choose Plan</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {assetPlans[asset].map((p) => (
-                <button
-                  key={p.name}
-                  onClick={() => {
-                    setPlan(p.name);
-                    sessionStorage.setItem("invest_plan", p.name);
-                  }}
-                  className={`relative p-5 rounded-xl border-2 text-left transition-all ${
-                    plan === p.name
-                      ? "bg-gradient-to-r from-blue-600 to-violet-600 text-white border-transparent shadow-lg shadow-blue-500/20"
-                      : "bg-slate-800/50 text-slate-300 border-slate-700/50 hover:border-blue-500/60"
-                  }`}
-                >
-                  {p.popular && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-amber-500 text-slate-900 text-xs font-bold shadow-lg whitespace-nowrap uppercase tracking-wide">
-                      Most Popular
-                    </div>
-                  )}
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <div className="font-bold text-lg">{p.name}</div>
-                      <div className={`text-sm mt-0.5 ${plan === p.name ? "text-white/70" : "text-slate-500"}`}>
-                        {p.lock}
+              {assetPlans[asset].map((p) => {
+                const isActive = plan === p.name;
+                const flexAprVal = assetPlans[asset][0].apr;
+                const bonusPct = p.name !== "Flexible"
+                  ? +(p.apr - flexAprVal).toFixed(2)
+                  : null;
+
+                const taglines: Record<string, string> = {
+                  "Flexible":  "Withdraw anytime, no lock",
+                  "30 Days":   "Short lock, solid yield",
+                  "90 Days":   "Best APR per day locked",
+                  "180 Days":  "Maximum annual returns",
+                };
+
+                const accentBorder: Record<string, string> = {
+                  "Flexible":  "border-slate-600/60",
+                  "30 Days":   "border-blue-500/30",
+                  "90 Days":   "border-amber-500/50",
+                  "180 Days":  "border-violet-500/40",
+                };
+                const accentBg: Record<string, string> = {
+                  "Flexible":  "bg-slate-800/50",
+                  "30 Days":   "bg-blue-900/20",
+                  "90 Days":   "bg-amber-900/15",
+                  "180 Days":  "bg-violet-900/20",
+                };
+                const aprColor: Record<string, string> = {
+                  "Flexible":  "text-slate-200",
+                  "30 Days":   "text-blue-300",
+                  "90 Days":   "text-amber-300",
+                  "180 Days":  "text-violet-300",
+                };
+                const bonusColor: Record<string, string> = {
+                  "30 Days":  "bg-blue-500/20 text-blue-300",
+                  "90 Days":  "bg-amber-500/20 text-amber-300",
+                  "180 Days": "bg-violet-500/20 text-violet-300",
+                };
+
+                return (
+                  <button
+                    key={p.name}
+                    onClick={() => {
+                      setPlan(p.name);
+                      sessionStorage.setItem("invest_plan", p.name);
+                    }}
+                    className={`relative p-5 rounded-xl border-2 text-left transition-all ${
+                      isActive
+                        ? p.name === "90 Days"
+                          ? "bg-gradient-to-br from-amber-600/80 to-orange-700/80 text-white border-amber-500/60 shadow-lg shadow-amber-500/20"
+                          : p.name === "180 Days"
+                          ? "bg-gradient-to-br from-violet-600 to-purple-700 text-white border-violet-500/60 shadow-lg shadow-violet-500/20"
+                          : p.name === "30 Days"
+                          ? "bg-gradient-to-br from-blue-600 to-blue-700 text-white border-blue-500/60 shadow-lg shadow-blue-500/20"
+                          : "bg-gradient-to-br from-slate-600 to-slate-700 text-white border-slate-500/60 shadow-lg"
+                        : `${accentBg[p.name]} ${accentBorder[p.name]} hover:brightness-110`
+                    }`}
+                  >
+                    {p.popular && (
+                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-amber-500 text-slate-900 text-xs font-bold shadow-lg whitespace-nowrap uppercase tracking-wide">
+                        ⭐ Most Popular
+                      </div>
+                    )}
+                    <div className="flex justify-between items-start gap-3">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <div className="font-bold text-lg leading-tight">{p.name}</div>
+                          {p.name === "Flexible" && (
+                            <div className="relative">
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); setShowFlexTooltip(v => !v); }}
+                                className={`w-4 h-4 rounded-full border text-[10px] font-bold flex items-center justify-center transition-all flex-shrink-0 ${
+                                  isActive
+                                    ? "border-white/50 text-white/70 hover:bg-white/20"
+                                    : "border-slate-500 text-slate-400 hover:border-slate-300 hover:text-slate-200"
+                                }`}
+                              >
+                                ?
+                              </button>
+                              {showFlexTooltip && (
+                                <div
+                                  className="absolute left-0 top-6 z-50 w-64 rounded-xl border border-slate-600/80 bg-slate-800 shadow-2xl p-4 text-left"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <div className="flex justify-between items-start mb-2">
+                                    <div className="text-sm font-bold text-white">Flexible Plan</div>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => { e.stopPropagation(); setShowFlexTooltip(false); }}
+                                      className="text-slate-500 hover:text-white text-xs ml-2"
+                                    >✕</button>
+                                  </div>
+                                  <div className="space-y-2 text-xs text-slate-300 leading-relaxed">
+                                    <p>💧 <strong className="text-white">No lock period</strong> — withdraw your funds at any time, no penalties.</p>
+                                    <p>📈 APR accrues daily and compounds automatically within your position.</p>
+                                    <p>⚡ Ideal for short-term holders or those who want liquidity on demand.</p>
+                                    <p className="text-slate-400 pt-1 border-t border-slate-700">Lower APR than locked plans — the trade-off for full flexibility.</p>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        <div className={`text-xs mt-1 ${isActive ? "text-white/70" : "text-slate-500"}`}>
+                          {taglines[p.name]}
+                        </div>
+                        {bonusPct !== null && (
+                          <div className={`inline-flex items-center gap-1 mt-2 px-2 py-0.5 rounded-full text-xs font-semibold ${
+                            isActive ? "bg-white/20 text-white" : bonusColor[p.name]
+                          }`}>
+                            +{bonusPct}% vs Flexible
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <div className={`text-3xl font-black ${isActive ? "text-white" : aprColor[p.name]}`}>
+                          {p.apr}%
+                        </div>
+                        <div className={`text-xs ${isActive ? "text-white/60" : "text-slate-500"}`}>APR / year</div>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold">{p.apr}%</div>
-                      <div className={`text-xs ${plan === p.name ? "text-white/70" : "text-slate-500"}`}>APR</div>
-                    </div>
-                  </div>
-                </button>
-              ))}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -741,10 +835,10 @@ export default function InvestPage() {
               <h3 className="text-lg font-bold mb-4 text-white">Performance Projection</h3>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                 {[
-                  { label: "Daily", value: dailyProfit },
-                  { label: "Monthly", value: monthlyProfit },
+                  { label: "Daily",     value: dailyProfit },
+                  { label: "Monthly",   value: monthlyProfit },
                   { label: "Quarterly", value: quarterlyProfit },
-                  { label: "Yearly", value: yearlyProfit },
+                  { label: "Yearly",    value: yearlyProfit },
                 ].map((item) => (
                   <div key={item.label} className="rounded-xl border border-slate-700/50 bg-slate-800/50 p-4">
                     <div className="text-slate-500 text-xs mb-1">{item.label}</div>
@@ -762,7 +856,7 @@ export default function InvestPage() {
               <h3 className="text-lg font-bold mb-4 text-white">Deposit Method</h3>
               <div className="space-y-3 mb-6">
                 {[
-                  { value: "wallet", label: "Connect Wallet", desc: "Instant deposit via Web3 transaction" },
+                  { value: "wallet", label: "Connect Wallet",  desc: "Instant deposit via Web3 transaction" },
                   { value: "manual", label: "Manual Transfer", desc: "Send funds to deposit address" },
                 ].map((m) => (
                   <label
@@ -890,10 +984,7 @@ export default function InvestPage() {
           </div>
           <div className="space-y-3">
             {faqItems.map((item, index) => (
-              <div
-                key={index}
-                className="rounded-2xl border border-slate-700/50 bg-slate-900/60 backdrop-blur-xl overflow-hidden"
-              >
+              <div key={index} className="rounded-2xl border border-slate-700/50 bg-slate-900/60 backdrop-blur-xl overflow-hidden">
                 <button
                   onClick={() => setOpenFaq(openFaq === index ? null : index)}
                   className="w-full flex items-center justify-between p-5 text-left group"
@@ -945,10 +1036,10 @@ export default function InvestPage() {
                 <p className="text-slate-400 text-center text-sm mb-6">Review the details before proceeding</p>
                 <div className="rounded-2xl border border-slate-700/50 bg-slate-800/50 p-5 mb-6 space-y-3">
                   {[
-                    { label: "Asset", value: asset },
-                    { label: "Plan", value: plan },
+                    { label: "Asset",   value: asset },
+                    { label: "Plan",    value: plan },
                     { label: "Network", value: assetConfig[asset].network },
-                    { label: "APR", value: `${selectedPlan.apr}%`, color: "text-blue-400" },
+                    { label: "APR",     value: `${selectedPlan.apr}%`, color: "text-blue-400" },
                   ].map((row) => (
                     <div key={row.label} className="flex justify-between items-center">
                       <span className="text-slate-400 text-sm">{row.label}</span>
@@ -1048,8 +1139,8 @@ export default function InvestPage() {
                   <div className="space-y-1 text-sm">
                     {[
                       { label: "Asset", value: `${depositAmount} ${asset}` },
-                      { label: "Plan", value: plan },
-                      { label: "APR", value: `${selectedPlan.apr}%` },
+                      { label: "Plan",  value: plan },
+                      { label: "APR",   value: `${selectedPlan.apr}%` },
                     ].map((row) => (
                       <div key={row.label} className="flex justify-between">
                         <span className="text-green-400/70">{row.label}:</span>
@@ -1064,7 +1155,10 @@ export default function InvestPage() {
                     <div className="font-mono text-xs break-all text-slate-300">{txHash}</div>
                   </div>
                 )}
-                <button onClick={closeModal} className="w-full py-4 rounded-xl bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 text-white font-bold text-lg shadow-xl shadow-blue-500/25 transition">
+                <button
+                  onClick={() => { closeModal(); router.push("/dashboard"); }}
+                  className="w-full py-4 rounded-xl bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 text-white font-bold text-lg shadow-xl shadow-blue-500/25 transition"
+                >
                   Go to Dashboard
                 </button>
               </div>
