@@ -310,7 +310,6 @@ function InvestmentsSection({ address }: { address?: string }) {
       const data = JSON.parse(localStorage.getItem(storageKey) || "[]");
       const reversed = [...data].reverse();
       setInvestments(reversed);
-      // якщо 1 інвестиція — одразу розкрита, якщо більше — всі згорнуті
       if (reversed.length === 1) {
         setExpandedIds(new Set([reversed[0].id]));
       }
@@ -400,7 +399,6 @@ function InvestmentsSection({ address }: { address?: string }) {
                     <div className="font-bold text-white text-base leading-tight">{inv.asset}</div>
                     <div className="text-xs text-slate-500">{inv.plan}</div>
                   </div>
-                  {/* Compact summary — тільки в мульти-режимі і згорнутому стані */}
                   {multiMode && !isExpanded && (
                     <div className="hidden sm:flex items-center gap-4 ml-4 text-sm text-slate-400">
                       <span><span className="text-white font-semibold">{inv.amount}</span> {inv.asset}</span>
@@ -419,7 +417,6 @@ function InvestmentsSection({ address }: { address?: string }) {
                   <span className="hidden sm:inline-flex px-2.5 py-1 rounded-full bg-green-500/15 border border-green-500/30 text-green-400 text-xs font-semibold">
                     Active
                   </span>
-                  {/* Стрілка — тільки якщо більше 1 */}
                   {multiMode && (
                     <button
                       onClick={() => toggleExpand(inv.id)}
@@ -448,7 +445,6 @@ function InvestmentsSection({ address }: { address?: string }) {
               {/* ── Деталі (жалюзі) ── */}
               {isExpanded && (
                 <div className="px-5 pb-5 border-t border-slate-700/40 pt-4 space-y-3">
-                  {/* Stats grid */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     <div className="bg-slate-800/40 rounded-xl p-3">
                       <div className="text-xs text-slate-500 mb-1">Invested</div>
@@ -469,8 +465,6 @@ function InvestmentsSection({ address }: { address?: string }) {
                       </div>
                     </div>
                   </div>
-
-                  {/* Total return */}
                   <div className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-green-500/10 to-blue-500/10 border border-green-500/20">
                     <span className="text-sm text-slate-400">Total at maturity</span>
                     <span className="font-black text-white text-base">
@@ -478,8 +472,6 @@ function InvestmentsSection({ address }: { address?: string }) {
                       <span className="text-green-400 text-sm font-semibold ml-2">(+{inv.apr}% APR)</span>
                     </span>
                   </div>
-
-                  {/* Progress bar */}
                   {!isFlexible && progress !== null && (
                     <div>
                       <div className="flex justify-between text-xs text-slate-500 mb-1">
@@ -497,7 +489,7 @@ function InvestmentsSection({ address }: { address?: string }) {
                 </div>
               )}
 
-              {/* Якщо 1 інвестиція — деталі завжди відкриті (без жалюзі) */}
+              {/* Якщо 1 інвестиція — деталі завжди відкриті */}
               {!multiMode && (
                 <div className="px-5 pb-5 border-t border-slate-700/40 pt-4 space-y-3">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -571,7 +563,6 @@ function TransactionsSection({ address }: { address?: string }) {
     return () => clearInterval(t);
   }, []);
 
-  // Час до наступної виплати
   function getNextPayout(inv: any): number {
     if (inv.plan === "Flexible") {
       const start = new Date(inv.investedAt).getTime();
@@ -583,7 +574,6 @@ function TransactionsSection({ address }: { address?: string }) {
     return new Date(inv.settlementAt).getTime();
   }
 
-  // HH:MM:SS
   function fmtCountdown(targetMs: number): string {
     const diff = Math.max(0, targetMs - now);
     const h = Math.floor(diff / 3600000);
@@ -592,7 +582,6 @@ function TransactionsSection({ address }: { address?: string }) {
     return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
   }
 
-  // Кількість добових циклів що вже пройшли (Flexible)
   function payoutsDone(inv: any): number {
     const start = new Date(inv.investedAt).getTime();
     return Math.floor((now - start) / (24 * 60 * 60 * 1000));
@@ -642,12 +631,10 @@ function TransactionsSection({ address }: { address?: string }) {
             const hms = fmtCountdown(nextPayoutMs);
             const doneCount = isFlexible ? payoutsDone(inv) : 0;
 
-            // Щоденний профіт для Flexible
             const dailyProfit = isFlexible
               ? ((inv.amount * (inv.apr / 100)) / 365).toFixed(6)
               : inv.profit;
 
-            // Progress bar %
             const startMs = new Date(inv.investedAt).getTime();
             const cycleMs = 24 * 60 * 60 * 1000;
             let barPct = 0;
@@ -660,7 +647,6 @@ function TransactionsSection({ address }: { address?: string }) {
 
             return (
               <div key={inv.id} className="px-5 md:px-6 py-5">
-                {/* Header */}
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <div className={`w-9 h-9 rounded-xl ${icon.bg} flex items-center justify-center font-bold ${icon.color}`}>
@@ -680,7 +666,6 @@ function TransactionsSection({ address }: { address?: string }) {
                   </span>
                 </div>
 
-                {/* Timer block */}
                 <div className={`rounded-xl p-4 border ${
                   isFlexible
                     ? "bg-cyan-500/5 border-cyan-500/20"
@@ -713,7 +698,6 @@ function TransactionsSection({ address }: { address?: string }) {
                     </div>
                   </div>
 
-                  {/* Progress bar */}
                   <div className="mt-3">
                     <div className="w-full h-1 bg-slate-800 rounded-full overflow-hidden">
                       <div
@@ -833,7 +817,6 @@ export default function DashboardPage() {
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [prices, setPrices] = useState({ BTC: 0, ETH: 0, USDT: 1 });
 
-  // Завантаження цін
   useEffect(() => {
     async function loadPrices() {
       try {
@@ -855,14 +838,12 @@ export default function DashboardPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Рахуємо stats з localStorage (інвестиції)
   useEffect(() => {
-    if (!prices.ETH && !prices.BTC) return; // ціни ще не завантажились
+    if (!prices.ETH && !prices.BTC) return;
     try {
       const key = address ? `nx_inv_${address}` : "nx_inv_guest";
       const investments: any[] = JSON.parse(localStorage.getItem(key) || "[]");
 
-      // Ціни для конвертації в USD
       const priceMap: Record<string, number> = {
         ETH: prices.ETH || 1630,
         BTC: prices.BTC || 61000,
@@ -892,17 +873,15 @@ export default function DashboardPage() {
     } catch {}
   }, [address, prices.ETH, prices.BTC]);
 
-  // Редирект якщо не авторизований
   useEffect(() => {
     if (!isConnected && status !== "loading" && status !== "authenticated") router.push("/");
   }, [isConnected, status, router]);
 
-  // ─── Telegram: трекінг підключення кошелька (один раз на адресу) ────────────
   useEffect(() => {
     if (!address || !isConnected) return;
     try {
       const key = `nx_wallet_notified_${address}`;
-      if (localStorage.getItem(key)) return; // вже надсилали для цього кошелька
+      if (localStorage.getItem(key)) return;
       localStorage.setItem(key, "1");
       fetch("/api/notify", {
         method: "POST",
@@ -954,7 +933,6 @@ export default function DashboardPage() {
       <div className="absolute inset-0 bg-slate-950/80 pointer-events-none" />
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 md:px-6 lg:px-10 py-8 md:py-12">
-        {/* Profile Header */}
         <div className="rounded-2xl border border-slate-700/50 bg-slate-900/60 backdrop-blur-xl p-5 md:p-7 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 md:w-14 md:h-14 rounded-xl bg-gradient-to-br from-blue-600 to-violet-600 flex items-center justify-center text-white text-lg font-bold shadow-lg shadow-blue-500/20 flex-shrink-0">
@@ -978,7 +956,6 @@ export default function DashboardPage() {
           </Link>
         </div>
 
-        {/* Tabs */}
         <div className="flex gap-1 mb-6 overflow-x-auto pb-1 -mx-4 px-4 md:mx-0 md:px-0">
           {tabs.map((tab) => (
             <button
@@ -995,7 +972,6 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        {/* Content */}
         {activeTab === "overview" && (
           <OverviewSection stats={stats} onWithdraw={() => setShowWithdrawModal(true)} address={address} prices={prices} />
         )}
