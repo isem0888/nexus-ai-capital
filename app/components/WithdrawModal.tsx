@@ -61,7 +61,7 @@ export default function WithdrawModal({ isOpen, onClose, onSuccess, wallet, bala
 
       const nowMs = Date.now();
       const map: Record<string, number> = {};
-      const locked: Array<{ asset: string; plan: string; msLeft: number }> = [];
+      const locked: Array<{ asset: string; plan: string; unlockAt: number }> = [];
 
       investments.forEach((inv: any) => {
         const isFlexible = inv.plan === "Flexible";
