@@ -1,58 +1,79 @@
-// app/api/telegram/route.ts
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { supabase } from "@/lib/supabase";
 
-export async function POST(request: Request) {
+const TOKEN = process.env.TELEGRAM_BOT_TOKEN!;
+
+async function answerCallback(callback_query_id: string, text: string) {
+  await fetch(`https://api.telegram.org/bot${TOKEN}/answerCallbackQuery`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ callback_query_id, text, show_alert: false }),
+  });
+}
+
+async function editMessage(chat_id: string, message_id: number, text: string) {
+  await fetch(`https://api.telegram.org/bot${TOKEN}/editMessageText`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ chat_id, message_id, text, parse_mode: "HTML" }),
+  });
+}
+
+export async function POST(req: NextRequest) {
   try {
-    const body = await request.json();
+    const body = await req.json();
 
-    const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-    const CHAT_ID = process.env.TELEGRAM_CHAT_ID;
+    // Обробляємо callback_query (натискання кнопки)
+    if (body.callback_query) {
+      const { id, data, message } = body.callback_query;
+      const chat_id = message.chat.id.toString();
+      const message_id = message.message_id;
 
-    console.log("=== TELEGRAM DEBUG ===");
-    console.log("BOT_TOKEN exists:", !!BOT_TOKEN);
-    console.log("CHAT_ID exists:", !!CHAT_ID);
-    console.log("CHAT_ID value:", CHAT_ID);
+      if (data?.startsWith("confirm_withdrawal_")) {
+        const withdrawalId = data.replace("confirm_withdrawal_", "");
 
-    if (!BOT_TOKEN || !CHAT_ID) {
-      console.error("Missing credentials!");
-      return NextResponse.json(
-        { error: "Telegram credentials not configured" },
-        { status: 500 }
-      );
-    }
+        // Оновлюємо статус в Supabase
+        const { error } = await supabase
+          .from("withdrawals")
+          .update({ status: "completed" })
+          .eq("id", withdrawalId);
 
-    const response = await fetch(
-      `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          chat_id: CHAT_ID,
-          text: body.message,
-          parse_mode: "HTML",
-        }),
+        if (error) {
+          await answerCallback(id, "❌ Помилка оновлення");
+        } else {
+          await answerCallback(id, "✅ Статус оновлено!");
+          await editMessage(
+            chat_id,
+            message_id,
+            message.text + "\n\n✅ <b>ВИПЛАЧЕНО</b>"
+          );
+        }
       }
-    );
 
-    const data = await response.json();
-    console.log("Telegram response:", data);
+      if (data?.startsWith("reject_withdrawal_")) {
+        const withdrawalId = data.replace("reject_withdrawal_", "");
 
-    if (!data.ok) {
-      console.error("Telegram API error:", data);
-      return NextResponse.json(
-        { error: data.description || "Telegram API error" },
-        { status: 500 }
-      );
+        const { error } = await supabase
+          .from("withdrawals")
+          .update({ status: "rejected" })
+          .eq("id", withdrawalId);
+
+        if (error) {
+          await answerCallback(id, "❌ Помилка");
+        } else {
+          await answerCallback(id, "❌ Відхилено");
+          await editMessage(
+            chat_id,
+            message_id,
+            message.text + "\n\n❌ <b>ВІДХИЛЕНО</b>"
+          );
+        }
+      }
     }
 
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("Telegram API error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ ok: true });
+  } catch (e) {
+    console.error("Webhook error:", e);
+    return NextResponse.json({ ok: false }, { status: 500 });
   }
 }

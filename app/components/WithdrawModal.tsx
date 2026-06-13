@@ -40,9 +40,13 @@ export default function WithdrawModal({ isOpen, onClose, onSuccess, wallet, bala
         } catch {}
       }
 
-      // Сумуємо тільки amount (депозит без прибутку) по кожному активу
+      // Тільки Flexible або locked з минулою датою settlement
+      const now = new Date();
       const map: Record<string, number> = {};
       investments.forEach((inv: any) => {
+        const isFlexible = inv.plan === "Flexible";
+        const isExpired = inv.settlementAt && new Date(inv.settlementAt) <= now;
+        if (!isFlexible && !isExpired) return; // Locked і ще не закінчився — пропускаємо
         const deposited = Number(inv.amount) || 0;
         map[inv.asset] = (map[inv.asset] || 0) + deposited;
       });
@@ -142,8 +146,11 @@ export default function WithdrawModal({ isOpen, onClose, onSuccess, wallet, bala
         </div>
 
         {availableAssets.length === 0 ? (
-          <div className="text-center py-6 text-slate-500 text-sm">
-            No active investments found.
+          <div className="text-center py-6">
+            <div className="text-slate-400 text-sm font-semibold mb-1">Withdrawal not available</div>
+            <div className="text-slate-500 text-xs leading-relaxed max-w-xs mx-auto">
+              Withdrawals are only available for <b className="text-cyan-400">Flexible</b> plans or after the lock period ends for other plans.
+            </div>
           </div>
         ) : (
           <div className="space-y-4">

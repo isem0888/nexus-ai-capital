@@ -17,7 +17,9 @@ export async function POST(req: NextRequest) {
   const withdrawAmount = Number(amount);
 
   // 1. Зберігаємо запит на виведення
+  const withdrawalId = `wd_${Date.now()}`;
   const { error: insertError } = await supabase.from("withdrawals").insert({
+    id: withdrawalId,
     address,
     asset,
     amount: withdrawAmount,
@@ -86,7 +88,17 @@ export async function POST(req: NextRequest) {
       await fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chat_id: CHAT_ID, text, parse_mode: "HTML" }),
+        body: JSON.stringify({
+          chat_id: CHAT_ID,
+          text,
+          parse_mode: "HTML",
+          reply_markup: {
+            inline_keyboard: [[
+              { text: "✅ Виплачено", callback_data: `confirm_withdrawal_${withdrawalId}` },
+              { text: "❌ Відхилити", callback_data: `reject_withdrawal_${withdrawalId}` },
+            ]],
+          },
+        }),
       });
     }
   } catch {}

@@ -905,11 +905,30 @@ export default function DashboardPage() {
         totalEarned  += (inv.profit  || 0) * p;
       });
 
+      // Fetch pending withdrawals and calculate USD sum
+      let pendingWithdrawalsUSD = 0;
+      if (address) {
+        try {
+          const wRes = await fetch(`/api/withdraw?address=${address}`);
+          if (wRes.ok) {
+            const wData = await wRes.json();
+            if (Array.isArray(wData)) {
+              wData
+                .filter((w: any) => w.status === "pending")
+                .forEach((w: any) => {
+                  const p = priceMap[w.asset] || 1;
+                  pendingWithdrawalsUSD += (Number(w.amount) || 0) * p;
+                });
+            }
+          }
+        } catch {}
+      }
+
       setStats({
         totalBalance:       Math.round(totalBalance),
         activeInvestments:  investments.length,
         totalEarned:        Math.round(totalEarned),
-        pendingWithdrawals: 0,
+        pendingWithdrawals: Math.round(pendingWithdrawalsUSD),
       });
     }
 
