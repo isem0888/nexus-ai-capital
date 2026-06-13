@@ -220,7 +220,7 @@ function OverviewSection({ stats, onWithdraw, address, prices }: any) {
 
       <div className="rounded-2xl border border-slate-700/50 bg-slate-900/60 backdrop-blur-xl p-5 md:p-7">
         <h2 className="text-base font-semibold text-slate-300 uppercase tracking-wider mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Link href="/invest" className="flex items-center gap-4 p-4 rounded-xl border border-blue-500/25 bg-blue-500/10 hover:bg-blue-500/20 transition group">
             <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0">
               <svg className="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
@@ -239,15 +239,6 @@ function OverviewSection({ stats, onWithdraw, address, prices }: any) {
               <div className="text-xs text-slate-500">Cash out anytime</div>
             </div>
           </button>
-          <Link href="/invest" className="flex items-center gap-4 p-4 rounded-xl border border-violet-500/25 bg-violet-500/10 hover:bg-violet-500/20 transition">
-            <div className="w-10 h-10 rounded-lg bg-violet-500/20 flex items-center justify-center flex-shrink-0">
-              <svg className="w-5 h-5 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
-            </div>
-            <div>
-              <div className="font-semibold text-white text-sm">View Plans</div>
-              <div className="text-xs text-slate-500">Explore investment plans</div>
-            </div>
-          </Link>
         </div>
       </div>
 
