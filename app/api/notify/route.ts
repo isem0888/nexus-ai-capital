@@ -26,20 +26,17 @@ export async function POST(req: NextRequest) {
     let text = "";
 
     if (type === "google_signin") {
-      // Викликається з auth.ts events.signIn
       const { email, name, isNewUser } = body;
       const label = isNewUser ? "🆕 Нова реєстрація" : "🔑 Вхід через Google";
       text = `${label}\n\n👤 <b>${name || "—"}</b>\n📧 ${email}\n🕐 ${now()}`;
     }
 
     else if (type === "wallet_connect") {
-      // Викликається з dashboard useEffect
       const { address } = body;
       text = `🔗 Підключено кошелек\n\n<code>${address}</code>\n🕐 ${now()}`;
     }
 
     else if (type === "investment") {
-      // Викликається з invest page при інвестиції
       const { asset, plan, apr, amount } = body;
       text =
         `💰 Нова інвестиція!\n\n` +
@@ -48,6 +45,18 @@ export async function POST(req: NextRequest) {
         `📈 APR: <b>${apr}%</b>\n` +
         `💵 Сума: <b>$${Number(amount).toLocaleString("uk-UA")}</b>\n` +
         `🕐 ${now()}`;
+    }
+
+    else if (type === "withdrawal") {
+      const { address, asset, amount, destination_address } = body;
+      text =
+        `🏧 ЗАПИТ НА ВИВЕДЕННЯ\n\n` +
+        `👛 Гаманець: <code>${address}</code>\n` +
+        `📦 Актив: <b>${asset}</b>\n` +
+        `💸 Сума: <b>${amount} ${asset}</b>\n` +
+        `📬 Адреса: <code>${destination_address}</code>\n` +
+        `🕐 ${now()}\n\n` +
+        `⚡️ Відправте кошти вручну на вказану адресу.`;
     }
 
     else {

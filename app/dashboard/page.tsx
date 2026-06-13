@@ -512,20 +512,31 @@ function InvestmentsSection({ address }: { address?: string }) {
 // ─── Transactions ─────────────────────────────────────────────────────────────
 function TransactionsSection({ address }: { address?: string }) {
   const [investments, setInvestments] = useState<any[]>([]);
+  const [withdrawals, setWithdrawals] = useState<any[]>([]);
   const [now, setNow] = useState(Date.now());
 
   const storageKey = address ? `nx_inv_${address}` : "nx_inv_guest";
 
   useEffect(() => {
     async function load() {
+      // Завантажуємо інвестиції
       if (address) {
         try {
           const res = await fetch(`/api/investments?address=${address}`);
           if (res.ok) {
             const data = await res.json();
-            if (Array.isArray(data)) { setInvestments(data); return; }
+            if (Array.isArray(data)) setInvestments(data);
           }
         } catch {}
+        // Завантажуємо виведення
+        try {
+          const res = await fetch(`/api/withdraw?address=${address}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data)) setWithdrawals(data);
+          }
+        } catch {}
+        return;
       }
       try {
         const data = JSON.parse(localStorage.getItem(storageKey) || "[]");
@@ -698,9 +709,10 @@ function TransactionsSection({ address }: { address?: string }) {
 
       <div className="rounded-2xl border border-slate-700/50 bg-slate-900/60 backdrop-blur-xl overflow-hidden">
         <div className="px-5 md:px-6 py-4 border-b border-slate-700/40">
-          <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">Deposit History</h3>
+          <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">Transaction History</h3>
         </div>
         <div className="divide-y divide-slate-700/20">
+          {/* Депозити */}
           {investments.map((inv: any) => {
             const icon = ASSET_ICONS[inv.asset] || { icon: "?", color: "text-slate-400", bg: "bg-slate-500/20" };
             return (
@@ -726,6 +738,42 @@ function TransactionsSection({ address }: { address?: string }) {
               </div>
             );
           })}
+
+          {/* Виведення */}
+          {withdrawals.map((w: any) => {
+            const icon = ASSET_ICONS[w.asset] || { icon: "?", color: "text-slate-400", bg: "bg-slate-500/20" };
+            const statusColor = w.status === "completed"
+              ? "text-green-400 bg-green-500/10 border-green-500/20"
+              : w.status === "rejected"
+              ? "text-red-400 bg-red-500/10 border-red-500/20"
+              : "text-amber-400 bg-amber-500/10 border-amber-500/20";
+            const statusLabel = w.status === "completed" ? "Completed" : w.status === "rejected" ? "Rejected" : "Pending";
+            return (
+              <div key={w.id} className="flex items-center gap-4 px-5 md:px-6 py-4">
+                <div className="w-9 h-9 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center flex-shrink-0">
+                  <svg className="w-4 h-4 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-semibold text-white text-sm">Withdrawal</span>
+                    <span className={`text-xs font-bold ${icon.color}`}>{w.asset}</span>
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${statusColor}`}>{statusLabel}</span>
+                  </div>
+                  <div className="text-xs text-slate-600 mt-0.5 font-mono truncate">{w.destination_address}</div>
+                  <div className="text-xs text-slate-600">{new Date(w.created_at).toLocaleDateString("uk-UA")}</div>
+                </div>
+                <div className="text-right flex-shrink-0">
+                  <div className="font-bold text-red-400">-{w.amount} {w.asset}</div>
+                </div>
+              </div>
+            );
+          })}
+
+          {investments.length === 0 && withdrawals.length === 0 && (
+            <div className="px-5 py-10 text-center text-slate-600 text-sm">No transactions yet</div>
+          )}
         </div>
       </div>
     </div>
