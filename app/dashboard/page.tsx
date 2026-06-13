@@ -301,22 +301,38 @@ function daysLeft(settlementAt: string | null): number | null {
 
 function InvestmentsSection({ address }: { address?: string }) {
   const [investments, setInvestments] = useState<any[]>([]);
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
   const storageKey = address ? `nx_inv_${address}` : "nx_inv_guest";
 
   useEffect(() => {
     try {
       const data = JSON.parse(localStorage.getItem(storageKey) || "[]");
-      setInvestments([...data].reverse());
+      const reversed = [...data].reverse();
+      setInvestments(reversed);
+      // якщо 1 інвестиція — одразу розкрита, якщо більше — всі згорнуті
+      if (reversed.length === 1) {
+        setExpandedIds(new Set([reversed[0].id]));
+      }
     } catch {}
   }, [address]);
+
+  const toggleExpand = (id: string) => {
+    setExpandedIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
 
   const removeInvestment = (id: string) => {
     try {
       const updated = JSON.parse(localStorage.getItem(storageKey) || "[]")
         .filter((inv: any) => inv.id !== id);
       localStorage.setItem(storageKey, JSON.stringify(updated));
-      setInvestments([...updated].reverse());
+      const reversed = [...updated].reverse();
+      setInvestments(reversed);
+      setExpandedIds(prev => { const n = new Set(prev); n.delete(id); return n; });
     } catch {}
   };
 
@@ -347,6 +363,8 @@ function InvestmentsSection({ address }: { address?: string }) {
     );
   }
 
+  const multiMode = investments.length > 1;
+
   return (
     <div className="space-y-5">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
@@ -359,7 +377,7 @@ function InvestmentsSection({ address }: { address?: string }) {
         </Link>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-3">
         {investments.map((inv: any) => {
           const icon = ASSET_ICONS[inv.asset] || { icon: "?", color: "text-slate-400", bg: "bg-slate-500/20" };
           const remaining = daysLeft(inv.settlementAt);
@@ -367,31 +385,58 @@ function InvestmentsSection({ address }: { address?: string }) {
           const progress = inv.lockDays && remaining !== null
             ? Math.round(((inv.lockDays - remaining) / inv.lockDays) * 100)
             : null;
+          const isExpanded = expandedIds.has(inv.id);
 
           return (
-            <div key={inv.id} className="rounded-2xl border border-slate-700/50 bg-slate-900/60 backdrop-blur-xl p-5 md:p-6">
-              {/* Header */}
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-xl ${icon.bg} flex items-center justify-center font-bold text-lg ${icon.color}`}>
+            <div key={inv.id} className="rounded-2xl border border-slate-700/50 bg-slate-900/60 backdrop-blur-xl overflow-hidden transition-all">
+
+              {/* ── Header (завжди видимий) ── */}
+              <div className="flex items-center justify-between px-5 py-4">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className={`w-10 h-10 rounded-xl flex-shrink-0 ${icon.bg} flex items-center justify-center font-bold text-lg ${icon.color}`}>
                     {icon.icon}
                   </div>
-                  <div>
-                    <div className="font-bold text-white text-base">{inv.asset}</div>
+                  <div className="min-w-0">
+                    <div className="font-bold text-white text-base leading-tight">{inv.asset}</div>
                     <div className="text-xs text-slate-500">{inv.plan}</div>
                   </div>
+                  {/* Compact summary — тільки в мульти-режимі і згорнутому стані */}
+                  {multiMode && !isExpanded && (
+                    <div className="hidden sm:flex items-center gap-4 ml-4 text-sm text-slate-400">
+                      <span><span className="text-white font-semibold">{inv.amount}</span> {inv.asset}</span>
+                      <span className="text-green-400 font-semibold">+{inv.profit} {inv.asset}</span>
+                      {!isFlexible && inv.settlementAt && (
+                        <span>{fmt(inv.settlementAt)}</span>
+                      )}
+                    </div>
+                  )}
                 </div>
-                <div className="flex items-center gap-2">
+
+                <div className="flex items-center gap-2 flex-shrink-0">
                   <span className="px-2.5 py-1 rounded-full bg-blue-500/15 border border-blue-500/30 text-blue-400 text-xs font-bold">
                     {inv.apr}% APR
                   </span>
-                  <span className="px-2.5 py-1 rounded-full bg-green-500/15 border border-green-500/30 text-green-400 text-xs font-semibold">
+                  <span className="hidden sm:inline-flex px-2.5 py-1 rounded-full bg-green-500/15 border border-green-500/30 text-green-400 text-xs font-semibold">
                     Active
                   </span>
+                  {/* Стрілка — тільки якщо більше 1 */}
+                  {multiMode && (
+                    <button
+                      onClick={() => toggleExpand(inv.id)}
+                      className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-700/60 transition"
+                    >
+                      <svg
+                        className={`w-4 h-4 transition-transform duration-300 ${isExpanded ? "rotate-180" : ""}`}
+                        fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                  )}
                   <button
                     onClick={() => removeInvestment(inv.id)}
-                    title="Remove investment"
-                    className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-600 hover:text-red-400 hover:bg-red-500/10 transition ml-1"
+                    title="Remove"
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-600 hover:text-red-400 hover:bg-red-500/10 transition"
                   >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -400,50 +445,102 @@ function InvestmentsSection({ address }: { address?: string }) {
                 </div>
               </div>
 
-              {/* Stats grid */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-                <div className="bg-slate-800/40 rounded-xl p-3">
-                  <div className="text-xs text-slate-500 mb-1">Invested</div>
-                  <div className="font-bold text-white">{inv.amount} {inv.asset}</div>
-                </div>
-                <div className="bg-slate-800/40 rounded-xl p-3">
-                  <div className="text-xs text-slate-500 mb-1">Expected profit</div>
-                  <div className="font-bold text-green-400">+{inv.profit} {inv.asset}</div>
-                </div>
-                <div className="bg-slate-800/40 rounded-xl p-3">
-                  <div className="text-xs text-slate-500 mb-1">Start date</div>
-                  <div className="font-bold text-white text-sm">{fmt(inv.investedAt)}</div>
-                </div>
-                <div className="bg-slate-800/40 rounded-xl p-3">
-                  <div className="text-xs text-slate-500 mb-1">Settlement</div>
-                  <div className="font-bold text-white text-sm">
-                    {isFlexible ? "Anytime" : inv.settlementAt ? fmt(inv.settlementAt) : "—"}
+              {/* ── Деталі (жалюзі) ── */}
+              {isExpanded && (
+                <div className="px-5 pb-5 border-t border-slate-700/40 pt-4 space-y-3">
+                  {/* Stats grid */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="bg-slate-800/40 rounded-xl p-3">
+                      <div className="text-xs text-slate-500 mb-1">Invested</div>
+                      <div className="font-bold text-white">{inv.amount} {inv.asset}</div>
+                    </div>
+                    <div className="bg-slate-800/40 rounded-xl p-3">
+                      <div className="text-xs text-slate-500 mb-1">Expected profit</div>
+                      <div className="font-bold text-green-400">+{inv.profit} {inv.asset}</div>
+                    </div>
+                    <div className="bg-slate-800/40 rounded-xl p-3">
+                      <div className="text-xs text-slate-500 mb-1">Start date</div>
+                      <div className="font-bold text-white text-sm">{fmt(inv.investedAt)}</div>
+                    </div>
+                    <div className="bg-slate-800/40 rounded-xl p-3">
+                      <div className="text-xs text-slate-500 mb-1">Settlement</div>
+                      <div className="font-bold text-white text-sm">
+                        {isFlexible ? "Anytime" : inv.settlementAt ? fmt(inv.settlementAt) : "—"}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
 
-              {/* Total return */}
-              <div className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-green-500/10 to-blue-500/10 border border-green-500/20">
-                <span className="text-sm text-slate-400">Total at maturity</span>
-                <span className="font-black text-white text-base">
-                  {inv.total} {inv.asset}
-                  <span className="text-green-400 text-sm font-semibold ml-2">(+{inv.apr}% APR)</span>
-                </span>
-              </div>
+                  {/* Total return */}
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-green-500/10 to-blue-500/10 border border-green-500/20">
+                    <span className="text-sm text-slate-400">Total at maturity</span>
+                    <span className="font-black text-white text-base">
+                      {inv.total} {inv.asset}
+                      <span className="text-green-400 text-sm font-semibold ml-2">(+{inv.apr}% APR)</span>
+                    </span>
+                  </div>
 
-              {/* Progress bar for locked plans */}
-              {!isFlexible && progress !== null && (
-                <div className="mt-3">
-                  <div className="flex justify-between text-xs text-slate-500 mb-1">
-                    <span>{progress}% complete</span>
-                    <span>{remaining} days remaining</span>
+                  {/* Progress bar */}
+                  {!isFlexible && progress !== null && (
+                    <div>
+                      <div className="flex justify-between text-xs text-slate-500 mb-1">
+                        <span>{progress}% complete</span>
+                        <span>{remaining} days remaining</span>
+                      </div>
+                      <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-blue-500 to-violet-500 rounded-full transition-all"
+                          style={{ width: `${progress}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Якщо 1 інвестиція — деталі завжди відкриті (без жалюзі) */}
+              {!multiMode && (
+                <div className="px-5 pb-5 border-t border-slate-700/40 pt-4 space-y-3">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="bg-slate-800/40 rounded-xl p-3">
+                      <div className="text-xs text-slate-500 mb-1">Invested</div>
+                      <div className="font-bold text-white">{inv.amount} {inv.asset}</div>
+                    </div>
+                    <div className="bg-slate-800/40 rounded-xl p-3">
+                      <div className="text-xs text-slate-500 mb-1">Expected profit</div>
+                      <div className="font-bold text-green-400">+{inv.profit} {inv.asset}</div>
+                    </div>
+                    <div className="bg-slate-800/40 rounded-xl p-3">
+                      <div className="text-xs text-slate-500 mb-1">Start date</div>
+                      <div className="font-bold text-white text-sm">{fmt(inv.investedAt)}</div>
+                    </div>
+                    <div className="bg-slate-800/40 rounded-xl p-3">
+                      <div className="text-xs text-slate-500 mb-1">Settlement</div>
+                      <div className="font-bold text-white text-sm">
+                        {isFlexible ? "Anytime" : inv.settlementAt ? fmt(inv.settlementAt) : "—"}
+                      </div>
+                    </div>
                   </div>
-                  <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-blue-500 to-violet-500 rounded-full transition-all"
-                      style={{ width: `${progress}%` }}
-                    />
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-green-500/10 to-blue-500/10 border border-green-500/20">
+                    <span className="text-sm text-slate-400">Total at maturity</span>
+                    <span className="font-black text-white text-base">
+                      {inv.total} {inv.asset}
+                      <span className="text-green-400 text-sm font-semibold ml-2">(+{inv.apr}% APR)</span>
+                    </span>
                   </div>
+                  {!isFlexible && progress !== null && (
+                    <div>
+                      <div className="flex justify-between text-xs text-slate-500 mb-1">
+                        <span>{progress}% complete</span>
+                        <span>{remaining} days remaining</span>
+                      </div>
+                      <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-blue-500 to-violet-500 rounded-full transition-all"
+                          style={{ width: `${progress}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
