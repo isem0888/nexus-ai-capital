@@ -77,74 +77,50 @@ export async function POST(req: NextRequest) {
     if (incomingMsg) {
       const chatId = incomingMsg.chat?.id;
       const replyText: string = incomingMsg.text || "";
+      const isReply = !!incomingMsg.reply_to_message;
+      const replyToMsgId: number | null = incomingMsg.reply_to_message?.message_id ?? null;
 
-      // Якщо це Reply — шукаємо session і пересилаємо у чат
-      if (incomingMsg.reply_to_message) {
-        const replyToMsgId: number = incomingMsg.reply_to_message.message_id;
+      // DEBUG: записуємо в Supabase щоб підтвердити що webhook викликається
+      await supabase.from("chat_messages").insert({
+        id: `dbg_${Date.now()}`,
+        session_id: "debug",
+        sender: "debug",
+        message: JSON.stringify({ isReply, replyToMsgId, text: replyText, chatId }),
+      });
 
-        // Debug ПЕРШИМ — до будь-яких запитів
-        try {
-          await fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              chat_id: chatId,
-              text: `🔧 Debug: reply received, msg_id=${replyToMsgId}`,
-            }),
-          });
-        } catch {}
-
+      if (isReply && replyToMsgId) {
         // Спосіб 1: DB lookup
         let foundSession: string | null = null;
-        try {
-          const { data } = await supabase
-            .from("tg_message_sessions")
-            .select("session_id")
-            .eq("tg_message_id", replyToMsgId)
-            .single();
-          foundSession = data?.session_id || null;
-        } catch {}
+        const { data } = await supabase
+          .from("tg_message_sessions")
+          .select("session_id")
+          .eq("tg_message_id", replyToMsgId)
+          .single();
+        foundSession = data?.session_id || null;
 
-        // Спосіб 2: парсинг тексту оригінального повідомлення
+        // Спосіб 2: парсинг тексту
         if (!foundSession) {
           const origText: string = incomingMsg.reply_to_message.text || "";
           const m = origText.match(/Session:\s*([a-zA-Z0-9_-]+)/);
           if (m) foundSession = m[1];
         }
 
-        try {
-          await fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              chat_id: chatId,
-              text: `🔧 Session: ${foundSession ?? "NOT FOUND"}`,
-            }),
-          });
-        } catch {}
+        // DEBUG: записуємо результат пошуку сесії
+        await supabase.from("chat_messages").insert({
+          id: `dbg2_${Date.now()}`,
+          session_id: "debug",
+          sender: "debug",
+          message: `session_found: ${foundSession ?? "NOT FOUND"}, tg_msg_id: ${replyToMsgId}`,
+        });
 
         if (foundSession) {
-          try {
-            await supabase.from("chat_messages").insert({
-              id: `msg_${Date.now()}`,
-              session_id: foundSession,
-              sender: "admin",
-              message: replyText,
-            });
-          } catch {}
-        }
-      } else {
-        // Звичайне повідомлення (не reply) — підтверджуємо що webhook живий
-        try {
-          await fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              chat_id: chatId,
-              text: `✅ Webhook alive! Got: "${replyText.slice(0, 50)}"`,
-            }),
+          await supabase.from("chat_messages").insert({
+            id: `msg_${Date.now()}`,
+            session_id: foundSession,
+            sender: "admin",
+            message: replyText,
           });
-        } catch {}
+        }
       }
 
       return NextResponse.json({ ok: true });
