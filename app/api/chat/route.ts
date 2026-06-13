@@ -34,11 +34,11 @@ export async function POST(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  // Forward to Telegram — включаємо session_id у текст щоб webhook зміг знайти сесію при відповіді
+  // Forward to Telegram — НЕ використовуємо parse_mode, щоб підкреслення у session_id не ламало текст
   const tgText =
-    `💬 *Nexus Support — нове повідомлення*\n\n` +
-    `🔑 Session: \`${session_id}\`\n` +
-    (page_url ? `🌐 Page: ${page_url}\n` : "") +
+    `💬 Nexus Support — нове повідомлення\n\n` +
+    `Session: ${session_id}\n` +
+    (page_url ? `Page: ${page_url}\n` : "") +
     `\n${message}`;
 
   await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
@@ -47,7 +47,6 @@ export async function POST(req: NextRequest) {
     body: JSON.stringify({
       chat_id: CHAT_ID,
       text: tgText,
-      parse_mode: "Markdown",
     }),
   });
 
