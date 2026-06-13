@@ -552,20 +552,221 @@ function InvestmentsSection({ address }: { address?: string }) {
 }
 
 // ─── Transactions ─────────────────────────────────────────────────────────────
-function TransactionsSection() {
+function TransactionsSection({ address }: { address?: string }) {
+  const [investments, setInvestments] = useState<any[]>([]);
+  const [now, setNow] = useState(Date.now());
+
+  const storageKey = address ? `nx_inv_${address}` : "nx_inv_guest";
+
+  useEffect(() => {
+    try {
+      const data = JSON.parse(localStorage.getItem(storageKey) || "[]");
+      setInvestments([...data].reverse());
+    } catch {}
+  }, [address]);
+
+  // Живий таймер — оновлюється кожну секунду
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  // Час до наступної виплати
+  function getNextPayout(inv: any): number {
+    if (inv.plan === "Flexible") {
+      const start = new Date(inv.investedAt).getTime();
+      const elapsed = now - start;
+      const cycleMs = 24 * 60 * 60 * 1000;
+      const cyclesPassed = Math.floor(elapsed / cycleMs);
+      return start + (cyclesPassed + 1) * cycleMs;
+    }
+    return new Date(inv.settlementAt).getTime();
+  }
+
+  // HH:MM:SS
+  function fmtCountdown(targetMs: number): string {
+    const diff = Math.max(0, targetMs - now);
+    const h = Math.floor(diff / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    const s = Math.floor((diff % 60000) / 1000);
+    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  }
+
+  // Кількість добових циклів що вже пройшли (Flexible)
+  function payoutsDone(inv: any): number {
+    const start = new Date(inv.investedAt).getTime();
+    return Math.floor((now - start) / (24 * 60 * 60 * 1000));
+  }
+
+  if (investments.length === 0) {
+    return (
+      <div className="space-y-5">
+        <div>
+          <h2 className="text-2xl font-bold text-white">Transaction History</h2>
+          <p className="text-slate-500 text-sm mt-1">All deposits, withdrawals, and payouts</p>
+        </div>
+        <div className="rounded-2xl border border-slate-700/50 bg-slate-900/60 backdrop-blur-xl p-10 md:p-16">
+          <div className="text-center">
+            <div className="w-16 h-16 rounded-2xl border border-slate-700/50 bg-slate-800/60 flex items-center justify-center mx-auto mb-5">
+              <svg className="w-8 h-8 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+            </div>
+            <div className="text-lg font-semibold text-slate-300">No transactions yet</div>
+            <div className="text-slate-600 mt-1 text-sm max-w-xs mx-auto">Once you make your first investment, all on-chain activity will appear here.</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-white">Transaction History</h2>
-        <p className="text-slate-500 text-sm mt-1">All deposits, withdrawals, and payouts</p>
+        <p className="text-slate-500 text-sm mt-1">Deposits and upcoming payouts</p>
       </div>
-      <div className="rounded-2xl border border-slate-700/50 bg-slate-900/60 backdrop-blur-xl p-10 md:p-16">
-        <div className="text-center">
-          <div className="w-16 h-16 rounded-2xl border border-slate-700/50 bg-slate-800/60 flex items-center justify-center mx-auto mb-5">
-            <svg className="w-8 h-8 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
-          </div>
-          <div className="text-lg font-semibold text-slate-300">No transactions yet</div>
-          <div className="text-slate-600 mt-1 text-sm max-w-xs mx-auto">Once you make your first investment, all on-chain activity will appear here.</div>
+
+      {/* ── Upcoming Payouts ── */}
+      <div className="rounded-2xl border border-slate-700/50 bg-slate-900/60 backdrop-blur-xl overflow-hidden">
+        <div className="px-5 md:px-6 py-4 border-b border-slate-700/40 flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+          <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">Upcoming Payouts</h3>
+        </div>
+
+        <div className="divide-y divide-slate-700/30">
+          {investments.map((inv: any) => {
+            const icon = ASSET_ICONS[inv.asset] || { icon: "?", color: "text-slate-400", bg: "bg-slate-500/20" };
+            const isFlexible = inv.plan === "Flexible";
+            const nextPayoutMs = getNextPayout(inv);
+            const diff = Math.max(0, nextPayoutMs - now);
+            const days = Math.floor(diff / 86400000);
+            const hms = fmtCountdown(nextPayoutMs);
+            const doneCount = isFlexible ? payoutsDone(inv) : 0;
+
+            // Щоденний профіт для Flexible
+            const dailyProfit = isFlexible
+              ? ((inv.amount * (inv.apr / 100)) / 365).toFixed(6)
+              : inv.profit;
+
+            // Progress bar %
+            const startMs = new Date(inv.investedAt).getTime();
+            const cycleMs = 24 * 60 * 60 * 1000;
+            let barPct = 0;
+            if (isFlexible) {
+              barPct = Math.round(((now - startMs) % cycleMs) / cycleMs * 100);
+            } else if (inv.settlementAt) {
+              const endMs = new Date(inv.settlementAt).getTime();
+              barPct = Math.min(100, Math.round(((now - startMs) / (endMs - startMs)) * 100));
+            }
+
+            return (
+              <div key={inv.id} className="px-5 md:px-6 py-5">
+                {/* Header */}
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-9 h-9 rounded-xl ${icon.bg} flex items-center justify-center font-bold ${icon.color}`}>
+                      {icon.icon}
+                    </div>
+                    <div>
+                      <div className="font-bold text-white text-sm">{inv.asset} · {inv.plan}</div>
+                      <div className="text-xs text-slate-500">{inv.amount} {inv.asset} · {inv.apr}% APR</div>
+                    </div>
+                  </div>
+                  <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${
+                    isFlexible
+                      ? "bg-cyan-500/10 border-cyan-500/30 text-cyan-400"
+                      : "bg-violet-500/10 border-violet-500/30 text-violet-400"
+                  }`}>
+                    {isFlexible ? "Daily" : `${inv.lockDays}d lock`}
+                  </span>
+                </div>
+
+                {/* Timer block */}
+                <div className={`rounded-xl p-4 border ${
+                  isFlexible
+                    ? "bg-cyan-500/5 border-cyan-500/20"
+                    : "bg-violet-500/5 border-violet-500/20"
+                }`}>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div>
+                      <div className="text-xs text-slate-500 mb-1">
+                        {isFlexible ? "Next daily payout in" : "Final settlement in"}
+                      </div>
+                      <div className={`font-mono text-3xl font-black tracking-widest leading-none ${
+                        isFlexible ? "text-cyan-400" : "text-violet-400"
+                      }`}>
+                        {isFlexible ? hms : (days > 0 ? `${days}d ${hms}` : hms)}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs text-slate-500 mb-1">
+                        {isFlexible ? "Per payout" : "Total at maturity"}
+                      </div>
+                      <div className="font-bold text-green-400 text-lg">+{dailyProfit} {inv.asset}</div>
+                      {isFlexible && doneCount > 0 && (
+                        <div className="text-xs text-slate-500 mt-0.5">
+                          {doneCount} payout{doneCount !== 1 ? "s" : ""} completed
+                        </div>
+                      )}
+                      {!isFlexible && inv.settlementAt && (
+                        <div className="text-xs text-slate-500 mt-0.5">{fmt(inv.settlementAt)}</div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Progress bar */}
+                  <div className="mt-3">
+                    <div className="w-full h-1 bg-slate-800 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all ${
+                          isFlexible
+                            ? "bg-gradient-to-r from-cyan-500 to-blue-400"
+                            : "bg-gradient-to-r from-violet-500 to-blue-500"
+                        }`}
+                        style={{ width: `${barPct}%` }}
+                      />
+                    </div>
+                    <div className="text-xs text-slate-600 mt-1 text-right">
+                      {isFlexible ? `${barPct}% of 24h cycle` : `${barPct}% elapsed`}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── Deposit History ── */}
+      <div className="rounded-2xl border border-slate-700/50 bg-slate-900/60 backdrop-blur-xl overflow-hidden">
+        <div className="px-5 md:px-6 py-4 border-b border-slate-700/40">
+          <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">Deposit History</h3>
+        </div>
+        <div className="divide-y divide-slate-700/20">
+          {investments.map((inv: any) => {
+            const icon = ASSET_ICONS[inv.asset] || { icon: "?", color: "text-slate-400", bg: "bg-slate-500/20" };
+            return (
+              <div key={inv.id} className="flex items-center gap-4 px-5 md:px-6 py-4">
+                <div className="w-9 h-9 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center flex-shrink-0">
+                  <svg className="w-4 h-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m-8-8h16" />
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-semibold text-white text-sm">Deposit</span>
+                    <span className={`text-xs font-bold ${icon.color}`}>{inv.asset}</span>
+                    <span className="text-xs text-slate-600">·</span>
+                    <span className="text-xs text-slate-500">{inv.plan} Plan</span>
+                  </div>
+                  <div className="text-xs text-slate-600 mt-0.5">{fmt(inv.investedAt)}</div>
+                </div>
+                <div className="text-right flex-shrink-0">
+                  <div className="font-bold text-green-400">+{inv.amount} {inv.asset}</div>
+                  <div className="text-xs text-slate-600">{inv.apr}% APR</div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
@@ -799,7 +1000,7 @@ export default function DashboardPage() {
           <OverviewSection stats={stats} onWithdraw={() => setShowWithdrawModal(true)} address={address} prices={prices} />
         )}
         {activeTab === "investments" && <InvestmentsSection address={address} />}
-        {activeTab === "transactions" && <TransactionsSection />}
+        {activeTab === "transactions" && <TransactionsSection address={address} />}
         {activeTab === "settings" && <SettingsSection address={address} />}
       </div>
 
