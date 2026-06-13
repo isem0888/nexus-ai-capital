@@ -56,19 +56,12 @@ export default function InvestPage() {
     return () => document.removeEventListener("click", handler);
   }, [showFlexTooltip]);
 
-  // TVL — зберігається в localStorage, крок 1–4M кожні 6 годин
-  const [tvl, setTvl] = useState<number>(() => {
-    if (typeof window === "undefined") return 307;
-    try {
-      const val = localStorage.getItem("nx_tvl");
-      const ts  = localStorage.getItem("nx_tvl_t");
-      if (val && ts && Date.now() - parseInt(ts) < 6 * 3600000) return parseInt(val);
-      const init = 300 + Math.floor(Math.random() * 111);
-      localStorage.setItem("nx_tvl", String(init));
-      localStorage.setItem("nx_tvl_t", String(Date.now()));
-      return init;
-    } catch { return 307; }
-  });
+  // TVL — детерміновано по часу, однаково у всіх користувачів (оновлюється кожні 6 годин)
+  function getGlobalTVL(): number {
+    const slot = Math.floor(Date.now() / (6 * 3600000));
+    return 300 + ((slot * 1103515245 + 12345) >>> 0) % 111;
+  }
+  const [tvl, setTvl] = useState<number>(getGlobalTVL);
 
   // Діапазони Flexible APR
   const APR_RANGES: Record<string, [number, number]> = {
@@ -113,14 +106,8 @@ export default function InvestPage() {
   });
 
   useEffect(() => {
-    const tvlInterval = setInterval(() => {
-      setTvl(prev => {
-        const step = (1 + Math.floor(Math.random() * 4)) * (Math.random() > 0.5 ? 1 : -1);
-        const next = Math.min(410, Math.max(300, prev + step));
-        try { localStorage.setItem("nx_tvl", String(next)); localStorage.setItem("nx_tvl_t", String(Date.now())); } catch {}
-        return next;
-      });
-    }, 6 * 3600000);
+    // TVL оновлюється кожні 6 годин синхронно для всіх
+    const tvlInterval = setInterval(() => setTvl(getGlobalTVL()), 6 * 3600000);
 
     const aprInterval = setInterval(() => {
       setFlexApr(prev => {
@@ -1039,132 +1026,73 @@ export default function InvestPage() {
                     </svg>
                   </div>
                 </div>
-                <h2 className="text-2xl md:text-3xl font-bold text-white text-center mb-2">Confirm Investment</h2>
-                <p className="text-slate-400 text-center text-sm mb-6">Review the details before proceeding</p>
-                <div className="rounded-2xl border border-slate-700/50 bg-slate-800/50 p-5 mb-6 space-y-3">
+                <h2 className="text-2xl font-bold text-white text-center mb-2">Confirm Investment</h2>
+                <p className="text-slate-400 text-center mb-6 text-sm">Please review your investment details before proceeding</p>
+
+                <div className="space-y-3 mb-6">
                   {[
-                    { label: "Asset",   value: asset },
-                    { label: "Plan",    value: plan },
-                    { label: "Network", value: assetConfig[asset].network },
-                    { label: "APR",     value: `${selectedPlan.apr}%`, color: "text-blue-400" },
-                  ].map((row) => (
-                    <div key={row.label} className="flex justify-between items-center">
-                      <span className="text-slate-400 text-sm">{row.label}</span>
-                      <span className={`font-bold ${row.color || "text-white"}`}>{row.value}</span>
+                    { label: "Asset", value: asset },
+                    { label: "Plan", value: plan },
+                    { label: "Amount", value: `${depositAmount} ${asset}` },
+                    { label: "APR", value: `${selectedPlan.apr}%` },
+                    { label: "Expected Profit", value: `+${profit.toFixed(4)} ${asset}` },
+                    { label: "Total at Maturity", value: `${total.toFixed(4)} ${asset}` },
+                  ].map(({ label, value }) => (
+                    <div key={label} className="flex justify-between items-center p-3 rounded-xl bg-slate-800/50 border border-slate-700/40">
+                      <span className="text-slate-400 text-sm">{label}</span>
+                      <span className="font-semibold text-white text-sm">{value}</span>
                     </div>
                   ))}
-                  <div className="border-t border-slate-700/50 pt-3">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-slate-400 text-sm">Amount</span>
-                      <span className="font-bold text-white text-lg">{depositAmount} {asset}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-400 text-sm">Expected Profit</span>
-                      <span className="font-bold text-green-400">{profit.toFixed(4)} {asset}</span>
-                    </div>
-                  </div>
                 </div>
+
                 {depositMethod === "wallet" ? (
-                  <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-4 mb-6">
-                    <div className="flex items-start gap-3">
-                      <svg className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                      </svg>
-                      <div className="text-xs text-amber-300 leading-relaxed">
-                        You are about to transfer <strong>{depositAmount} {asset}</strong> to Nexus AI Capital. Your wallet will ask you to confirm and pay network fees.
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="rounded-xl border border-blue-500/20 bg-blue-500/10 p-4 mb-6">
-                    <div className="flex items-start gap-3">
-                      <svg className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <div className="text-xs text-blue-300 leading-relaxed">
-                        After clicking "I Have Sent Funds", our system will verify your transaction on-chain. Your investment will be activated after network confirmation.
-                      </div>
-                    </div>
-                  </div>
-                )}
-                <div className="space-y-3">
-                  {depositMethod === "wallet" ? (
-                    <button onClick={handleConfirmPayment} disabled={isProcessing} className="w-full py-4 rounded-xl bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 text-white font-bold text-lg shadow-xl shadow-blue-500/25 transition disabled:opacity-50">
-                      Confirm Payment
-                    </button>
-                  ) : (
-                    <button onClick={handleManualSent} className="w-full py-4 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white font-bold text-lg shadow-xl shadow-green-500/25 transition">
-                      I Have Sent Funds
-                    </button>
-                  )}
-                  <button onClick={closeModal} disabled={isProcessing} className="w-full py-3 rounded-xl border border-slate-700/50 text-slate-400 hover:text-white hover:border-slate-500 transition font-medium disabled:opacity-50">
-                    Cancel
+                  <button
+                    onClick={handleConfirmPayment}
+                    className="w-full py-4 rounded-xl bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 text-white font-bold text-lg transition shadow-xl shadow-blue-500/25"
+                  >
+                    Confirm & Send Transaction
                   </button>
-                </div>
+                ) : (
+                  <button
+                    onClick={handleManualSent}
+                    className="w-full py-4 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white font-bold text-lg transition shadow-xl shadow-green-500/25"
+                  >
+                    I've Sent the Funds
+                  </button>
+                )}
               </>
             )}
 
             {txStatus === "pending" && (
               <div className="text-center py-8">
-                <div className="w-20 h-20 rounded-full bg-blue-500/20 border border-blue-500/30 flex items-center justify-center mx-auto mb-6">
-                  <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                </div>
-                <h2 className="text-2xl font-bold text-white mb-2">Processing Transaction</h2>
-                <p className="text-slate-400 text-sm mb-4">
-                  {depositMethod === "wallet" ? "Please confirm in your wallet..." : "Verifying your transfer..."}
-                </p>
-                <div className="rounded-xl border border-slate-700/50 bg-slate-800/50 p-4 text-sm text-slate-400">
-                  <div className="flex justify-between mb-2">
-                    <span>Amount:</span>
-                    <span className="font-semibold text-white">{depositAmount} {asset}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>To:</span>
-                    <span className="font-mono text-xs">{depositAddresses[asset].slice(0, 10)}...{depositAddresses[asset].slice(-6)}</span>
-                  </div>
-                </div>
+                <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-6" />
+                <h3 className="text-xl font-bold text-white mb-2">Processing Transaction</h3>
+                <p className="text-slate-400 text-sm">Please confirm in your wallet and wait...</p>
               </div>
             )}
 
             {txStatus === "success" && (
-              <div className="text-center py-6">
+              <div className="text-center py-8">
                 <div className="w-20 h-20 rounded-full bg-green-500/20 border border-green-500/30 flex items-center justify-center mx-auto mb-6">
                   <svg className="w-10 h-10 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
-                <h2 className="text-2xl font-bold text-white mb-2">
-                  {depositMethod === "wallet" ? "Transaction Submitted!" : "Funds Confirmed!"}
-                </h2>
-                <p className="text-slate-400 text-sm mb-6">
-                  {depositMethod === "wallet"
-                    ? "Your investment is being processed. Track it in your dashboard."
-                    : "Your investment will be activated after network confirmation (10–30 minutes)."}
-                </p>
-                <div className="rounded-xl border border-green-500/20 bg-green-500/10 p-4 mb-6">
-                  <div className="text-xs text-green-400 font-semibold mb-3">Investment Details</div>
-                  <div className="space-y-1 text-sm">
-                    {[
-                      { label: "Asset", value: `${depositAmount} ${asset}` },
-                      { label: "Plan",  value: plan },
-                      { label: "APR",   value: `${selectedPlan.apr}%` },
-                    ].map((row) => (
-                      <div key={row.label} className="flex justify-between">
-                        <span className="text-green-400/70">{row.label}:</span>
-                        <span className="font-semibold text-green-300">{row.value}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                {depositMethod === "wallet" && txHash && !txHash.startsWith("manual") && (
-                  <div className="rounded-xl border border-slate-700/50 bg-slate-800/50 p-3 mb-6">
-                    <div className="text-xs text-slate-500 mb-1">Transaction Hash</div>
-                    <div className="font-mono text-xs break-all text-slate-300">{txHash}</div>
-                  </div>
+                <h3 className="text-2xl font-bold text-white mb-2">Investment Confirmed!</h3>
+                <p className="text-slate-400 text-sm mb-4">Your investment has been successfully registered.</p>
+                {txHash && !txHash.startsWith("manual-") && (
+                  <a
+                    href={`https://etherscan.io/tx/${txHash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-400 text-xs font-mono hover:underline break-all"
+                  >
+                    {txHash.slice(0, 20)}...{txHash.slice(-8)}
+                  </a>
                 )}
                 <button
-                  onClick={() => { closeModal(); router.push("/dashboard"); }}
-                  className="w-full py-4 rounded-xl bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 text-white font-bold text-lg shadow-xl shadow-blue-500/25 transition"
+                  onClick={() => router.push("/dashboard")}
+                  className="mt-6 w-full py-3 rounded-xl bg-gradient-to-r from-blue-600 to-violet-600 text-white font-bold transition hover:from-blue-500 hover:to-violet-500"
                 >
                   Go to Dashboard
                 </button>
@@ -1172,22 +1100,20 @@ export default function InvestPage() {
             )}
 
             {txStatus === "error" && (
-              <div className="text-center py-6">
+              <div className="text-center py-8">
                 <div className="w-20 h-20 rounded-full bg-red-500/20 border border-red-500/30 flex items-center justify-center mx-auto mb-6">
                   <svg className="w-10 h-10 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </div>
-                <h2 className="text-2xl font-bold text-white mb-2">Transaction Failed</h2>
-                <p className="text-slate-400 text-sm mb-6">{errorMsg || "Something went wrong. Please try again."}</p>
-                <div className="space-y-3">
-                  <button onClick={() => { setTxStatus("idle"); setErrorMsg(""); }} className="w-full py-4 rounded-xl bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 text-white font-bold text-lg shadow-xl shadow-blue-500/25 transition">
-                    Try Again
-                  </button>
-                  <button onClick={closeModal} className="w-full py-3 rounded-xl border border-slate-700/50 text-slate-400 hover:text-white hover:border-slate-500 transition font-medium">
-                    Cancel
-                  </button>
-                </div>
+                <h3 className="text-xl font-bold text-white mb-2">Transaction Failed</h3>
+                <p className="text-red-400 text-sm mb-6 leading-relaxed">{errorMsg}</p>
+                <button
+                  onClick={() => setTxStatus("idle")}
+                  className="w-full py-3 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-semibold transition"
+                >
+                  Try Again
+                </button>
               </div>
             )}
           </div>
