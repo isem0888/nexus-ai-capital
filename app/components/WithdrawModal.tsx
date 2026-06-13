@@ -40,13 +40,17 @@ export default function WithdrawModal({ isOpen, onClose, onSuccess, wallet, bala
         } catch {}
       }
 
-      // Тільки Flexible або locked з минулою датою settlement
+      // Тільки Flexible (після 24г) або locked з минулою датою settlement
       const now = new Date();
       const map: Record<string, number> = {};
       investments.forEach((inv: any) => {
         const isFlexible = inv.plan === "Flexible";
         const isExpired = inv.settlementAt && new Date(inv.settlementAt) <= now;
-        if (!isFlexible && !isExpired) return; // Locked і ще не закінчився — пропускаємо
+        const hoursElapsed = (now.getTime() - new Date(inv.investedAt).getTime()) / (1000 * 60 * 60);
+        const is24hPassed = hoursElapsed >= 24;
+
+        if (isFlexible && !is24hPassed) return; // Flexible але ще не пройшло 24г
+        if (!isFlexible && !isExpired) return;   // Locked і ще не закінчився
         const deposited = Number(inv.amount) || 0;
         map[inv.asset] = (map[inv.asset] || 0) + deposited;
       });

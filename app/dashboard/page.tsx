@@ -518,22 +518,13 @@ function TransactionsSection({ address }: { address?: string }) {
   const storageKey = address ? `nx_inv_${address}` : "nx_inv_guest";
 
   useEffect(() => {
-    async function load() {
-      // Завантажуємо інвестиції
+    async function loadInvestments() {
       if (address) {
         try {
           const res = await fetch(`/api/investments?address=${address}`);
           if (res.ok) {
             const data = await res.json();
             if (Array.isArray(data)) setInvestments(data);
-          }
-        } catch {}
-        // Завантажуємо виведення
-        try {
-          const res = await fetch(`/api/withdraw?address=${address}`);
-          if (res.ok) {
-            const data = await res.json();
-            if (Array.isArray(data)) setWithdrawals(data);
           }
         } catch {}
         return;
@@ -543,7 +534,24 @@ function TransactionsSection({ address }: { address?: string }) {
         setInvestments([...data].reverse());
       } catch {}
     }
-    load();
+
+    async function loadWithdrawals() {
+      if (!address) return;
+      try {
+        const res = await fetch(`/api/withdraw?address=${address}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data)) setWithdrawals(data);
+        }
+      } catch {}
+    }
+
+    loadInvestments();
+    loadWithdrawals();
+
+    // Авто-оновлення статусів виведень кожні 15 секунд
+    const interval = setInterval(loadWithdrawals, 15000);
+    return () => clearInterval(interval);
   }, [address]);
 
   useEffect(() => {
@@ -840,6 +848,12 @@ export default function DashboardPage() {
   });
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+
+  // Авто-оновлення stat карточок кожні 30 секунд (щоб Pending Withdrawals оновлювався після TG кнопки)
+  useEffect(() => {
+    const interval = setInterval(() => setRefreshKey(k => k + 1), 30000);
+    return () => clearInterval(interval);
+  }, []);
   const [prices, setPrices] = useState({ BTC: 0, ETH: 0, USDT: 1 });
 
   useEffect(() => {
