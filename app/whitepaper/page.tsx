@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
+import ChatWidget from "@/app/components/ChatWidget";
 
 export default function WhitepaperPage() {
   const [activeSection, setActiveSection] = useState("abstract");
@@ -449,93 +450,63 @@ export default function WhitepaperPage() {
             </section>
 
             {/* Team */}
-<section id="team" className="scroll-mt-20">
-  <SectionHeader num="09" title="Team & Advisors" />
-  <div className="prose-custom">
-    <p>
-      Nexus is built by a team of 47 professionals spanning quantitative finance, machine learning, blockchain engineering, and regulatory compliance. The core team has collectively managed over $2B in algorithmic trading assets and published 30+ papers in top-tier ML and finance conferences.
-    </p>
+            <section id="team" className="scroll-mt-20">
+              <SectionHeader num="09" title="Team & Advisors" />
+              <div className="prose-custom">
+                <p>
+                  Nexus is built by a team of 47 professionals spanning quantitative finance, machine learning, blockchain engineering, and regulatory compliance. The core team has collectively managed over $2B in algorithmic trading assets and published 30+ papers in top-tier ML and finance conferences.
+                </p>
 
-    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 my-6">
-      {/* CEO */}
-      <div className="rounded-xl border border-slate-700/50 bg-slate-900/60 backdrop-blur-xl p-5">
-        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-violet-500 mb-3" />
-        <div className="text-xs text-blue-400 uppercase tracking-wider font-semibold mb-1">
-          CEO & Co-Founder
-        </div>
-        <div className="text-sm font-bold text-white mb-2">Dr. Ranveer Agrawal</div>
-        <p className="text-sm text-slate-400">
-          PhD Computer Science, MIT. Ex-Jane Street, ex-Citadel. 15 years in quant trading.
-        </p>
-      </div>
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 my-6">
+                  <div className="rounded-xl border border-slate-700/50 bg-slate-900/60 backdrop-blur-xl p-5">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-violet-500 mb-3" />
+                    <div className="text-xs text-blue-400 uppercase tracking-wider font-semibold mb-1">CEO & Co-Founder</div>
+                    <div className="text-sm font-bold text-white mb-2">Dr. Ranveer Agrawal</div>
+                    <p className="text-sm text-slate-400">PhD Computer Science, MIT. Ex-Jane Street, ex-Citadel. 15 years in quant trading.</p>
+                  </div>
 
-      {/* CTO */}
-      <div className="rounded-xl border border-slate-700/50 bg-slate-900/60 backdrop-blur-xl p-5">
-        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-violet-500 to-purple-500 mb-3" />
-        <div className="text-xs text-violet-400 uppercase tracking-wider font-semibold mb-1">
-          CTO & Co-Founder
-        </div>
-        <div className="text-sm font-bold text-white mb-2">Jared Quincy Davis</div>
-        <p className="text-sm text-slate-400">
-          PhD Machine Learning, Stanford. Ex-Google DeepMind. Led AI teams at Two Sigma.
-        </p>
-      </div>
+                  <div className="rounded-xl border border-slate-700/50 bg-slate-900/60 backdrop-blur-xl p-5">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-violet-500 to-purple-500 mb-3" />
+                    <div className="text-xs text-violet-400 uppercase tracking-wider font-semibold mb-1">CTO & Co-Founder</div>
+                    <div className="text-sm font-bold text-white mb-2">Jared Quincy Davis</div>
+                    <p className="text-sm text-slate-400">PhD Machine Learning, Stanford. Ex-Google DeepMind. Led AI teams at Two Sigma.</p>
+                  </div>
 
-      {/* Head of Research */}
-      <div className="rounded-xl border border-slate-700/50 bg-slate-900/60 backdrop-blur-xl p-5">
-        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 mb-3" />
-        <div className="text-xs text-green-400 uppercase tracking-wider font-semibold mb-1">
-          Head of Research
-        </div>
-        <div className="text-sm font-bold text-white mb-2">Robert Mercer</div>
-        <p className="text-sm text-slate-400">
-          PhD Financial Mathematics, Oxford. Former portfolio manager at Renaissance Technologies.
-        </p>
-      </div>
+                  <div className="rounded-xl border border-slate-700/50 bg-slate-900/60 backdrop-blur-xl p-5">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 mb-3" />
+                    <div className="text-xs text-green-400 uppercase tracking-wider font-semibold mb-1">Head of Research</div>
+                    <div className="text-sm font-bold text-white mb-2">Robert Mercer</div>
+                    <p className="text-sm text-slate-400">PhD Financial Mathematics, Oxford. Former portfolio manager at Renaissance Technologies.</p>
+                  </div>
 
-      {/* Head of Engineering */}
-      <div className="rounded-xl border border-slate-700/50 bg-slate-900/60 backdrop-blur-xl p-5">
-        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-500 to-blue-500 mb-3" />
-        <div className="text-xs text-cyan-400 uppercase tracking-wider font-semibold mb-1">
-          Head of Engineering
-        </div>
-        <div className="text-sm font-bold text-white mb-2">Daniel Lemire</div>
-        <p className="text-sm text-slate-400">
-          Ex-Meta, ex-Coinbase. Built trading infrastructure handling $100B+ daily volume.
-        </p>
-      </div>
+                  <div className="rounded-xl border border-slate-700/50 bg-slate-900/60 backdrop-blur-xl p-5">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-500 to-blue-500 mb-3" />
+                    <div className="text-xs text-cyan-400 uppercase tracking-wider font-semibold mb-1">Head of Engineering</div>
+                    <div className="text-sm font-bold text-white mb-2">Daniel Lemire</div>
+                    <p className="text-sm text-slate-400">Ex-Meta, ex-Coinbase. Built trading infrastructure handling $100B+ daily volume.</p>
+                  </div>
 
-      {/* Chief Risk Officer */}
-      <div className="rounded-xl border border-slate-700/50 bg-slate-900/60 backdrop-blur-xl p-5">
-        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-500 to-orange-500 mb-3" />
-        <div className="text-xs text-amber-400 uppercase tracking-wider font-semibold mb-1">
-          Chief Risk Officer
-        </div>
-        <div className="text-sm font-bold text-white mb-2">Simeon Fishman</div>
-        <p className="text-sm text-slate-400">
-          Ex-Goldman Sachs, ex-AQR. 20 years in risk management across asset classes.
-        </p>
-      </div>
+                  <div className="rounded-xl border border-slate-700/50 bg-slate-900/60 backdrop-blur-xl p-5">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-500 to-orange-500 mb-3" />
+                    <div className="text-xs text-amber-400 uppercase tracking-wider font-semibold mb-1">Chief Risk Officer</div>
+                    <div className="text-sm font-bold text-white mb-2">Simeon Fishman</div>
+                    <p className="text-sm text-slate-400">Ex-Goldman Sachs, ex-AQR. 20 years in risk management across asset classes.</p>
+                  </div>
 
-      {/* Head of Legal */}
-      <div className="rounded-xl border border-slate-700/50 bg-slate-900/60 backdrop-blur-xl p-5">
-        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-rose-500 to-pink-500 mb-3" />
-        <div className="text-xs text-rose-400 uppercase tracking-wider font-semibold mb-1">
-          Head of Legal
-        </div>
-        <div className="text-sm font-bold text-white mb-2">David Hirsch</div>
-        <p className="text-sm text-slate-400">
-          Former SEC enforcement. Advised on crypto regulation for 50+ projects.
-        </p>
-      </div>
-    </div>
+                  <div className="rounded-xl border border-slate-700/50 bg-slate-900/60 backdrop-blur-xl p-5">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-rose-500 to-pink-500 mb-3" />
+                    <div className="text-xs text-rose-400 uppercase tracking-wider font-semibold mb-1">Head of Legal</div>
+                    <div className="text-sm font-bold text-white mb-2">David Hirsch</div>
+                    <p className="text-sm text-slate-400">Former SEC enforcement. Advised on crypto regulation for 50+ projects.</p>
+                  </div>
+                </div>
 
-    <h3 className="text-xl font-bold text-white mb-3 mt-8">Advisory Board</h3>
-    <p>
-      The advisory board includes former regulators, Nobel laureates in economics, and founders of top-tier crypto protocols. Full biographies available in Appendix A.
-    </p>
-  </div>
-</section>
+                <h3 className="text-xl font-bold text-white mb-3 mt-8">Advisory Board</h3>
+                <p>
+                  The advisory board includes former regulators, Nobel laureates in economics, and founders of top-tier crypto protocols. Full biographies available in Appendix A.
+                </p>
+              </div>
+            </section>
 
             {/* Risks */}
             <section id="risks" className="scroll-mt-20">
@@ -626,6 +597,8 @@ export default function WhitepaperPage() {
           </div>
         </div>
       </div>
+
+      <ChatWidget />
     </main>
   );
 }

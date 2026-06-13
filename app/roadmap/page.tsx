@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
+import ChatWidget from "@/app/components/ChatWidget";
 
 export default function RoadmapPage() {
   const [visiblePhases, setVisiblePhases] = useState<Set<number>>(new Set());
@@ -810,6 +811,8 @@ export default function RoadmapPage() {
           </Link>
         </div>
       </div>
+
+      <ChatWidget />
     </main>
   );
 }
