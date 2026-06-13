@@ -386,6 +386,13 @@ export default function InvestPage() {
         localStorage.setItem(storageKey, JSON.stringify(existing));
       } catch {}
 
+      // Зберігаємо в Supabase через API route
+      fetch("/api/investments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...investment, address }),
+      }).catch(() => {});
+
       // Dedup TG нотифікації по invId
       const notifyKey = `nx_inv_notify_${invId}`;
       if (!localStorage.getItem(notifyKey)) {

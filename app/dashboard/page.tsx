@@ -302,18 +302,40 @@ function daysLeft(settlementAt: string | null): number | null {
 function InvestmentsSection({ address }: { address?: string }) {
   const [investments, setInvestments] = useState<any[]>([]);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState(true);
 
   const storageKey = address ? `nx_inv_${address}` : "nx_inv_guest";
 
   useEffect(() => {
-    try {
-      const data = JSON.parse(localStorage.getItem(storageKey) || "[]");
-      const reversed = [...data].reverse();
-      setInvestments(reversed);
-      if (reversed.length === 1) {
-        setExpandedIds(new Set([reversed[0].id]));
+    async function load() {
+      setLoading(true);
+      // Спочатку пробуємо API (Supabase)
+      if (address) {
+        try {
+          const res = await fetch(`/api/investments?address=${address}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data) && data.length >= 0) {
+              // Синхронізуємо localStorage з БД
+              localStorage.setItem(storageKey, JSON.stringify([...data].reverse()));
+              setInvestments(data);
+              if (data.length === 1) setExpandedIds(new Set([data[0].id]));
+              setLoading(false);
+              return;
+            }
+          }
+        } catch {}
       }
-    } catch {}
+      // Fallback: localStorage
+      try {
+        const data = JSON.parse(localStorage.getItem(storageKey) || "[]");
+        const reversed = [...data].reverse();
+        setInvestments(reversed);
+        if (reversed.length === 1) setExpandedIds(new Set([reversed[0].id]));
+      } catch {}
+      setLoading(false);
+    }
+    load();
   }, [address]);
 
   const toggleExpand = (id: string) => {
@@ -325,6 +347,11 @@ function InvestmentsSection({ address }: { address?: string }) {
   };
 
   const removeInvestment = (id: string) => {
+    // Видаляємо з Supabase
+    if (address) {
+      fetch(`/api/investments?id=${id}&address=${address}`, { method: "DELETE" }).catch(() => {});
+    }
+    // Видаляємо з localStorage
     try {
       const updated = JSON.parse(localStorage.getItem(storageKey) || "[]")
         .filter((inv: any) => inv.id !== id);
@@ -551,10 +578,22 @@ function TransactionsSection({ address }: { address?: string }) {
   const storageKey = address ? `nx_inv_${address}` : "nx_inv_guest";
 
   useEffect(() => {
-    try {
-      const data = JSON.parse(localStorage.getItem(storageKey) || "[]");
-      setInvestments([...data].reverse());
-    } catch {}
+    async function load() {
+      if (address) {
+        try {
+          const res = await fetch(`/api/investments?address=${address}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data)) { setInvestments(data); return; }
+          }
+        } catch {}
+      }
+      try {
+        const data = JSON.parse(localStorage.getItem(storageKey) || "[]");
+        setInvestments([...data].reverse());
+      } catch {}
+    }
+    load();
   }, [address]);
 
   // Живий таймер — оновлюється кожну секунду
@@ -840,9 +879,26 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!prices.ETH && !prices.BTC) return;
-    try {
-      const key = address ? `nx_inv_${address}` : "nx_inv_guest";
-      const investments: any[] = JSON.parse(localStorage.getItem(key) || "[]");
+
+    async function calcStats() {
+      let investments: any[] = [];
+
+      // Спочатку API, потім localStorage як fallback
+      if (address) {
+        try {
+          const res = await fetch(`/api/investments?address=${address}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data)) investments = data;
+          }
+        } catch {}
+      }
+      if (investments.length === 0) {
+        try {
+          const key = address ? `nx_inv_${address}` : "nx_inv_guest";
+          investments = JSON.parse(localStorage.getItem(key) || "[]");
+        } catch {}
+      }
 
       const priceMap: Record<string, number> = {
         ETH: prices.ETH || 1630,
@@ -870,7 +926,9 @@ export default function DashboardPage() {
         totalEarned:        Math.round(totalEarned),
         pendingWithdrawals: 0,
       });
-    } catch {}
+    }
+
+    calcStats();
   }, [address, prices.ETH, prices.BTC]);
 
   useEffect(() => {
