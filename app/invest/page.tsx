@@ -43,102 +43,84 @@ export default function InvestPage() {
   const [txHash, setTxHash] = useState<string>("");
   const [errorMsg, setErrorMsg] = useState<string>("");
   const [openFaq, setOpenFaq] = useState<number | null>(null);
-  const [tvl, setTvl] = useState<number>(349);
-
-  // Flexible APR — базовые значения (будут перезаписаны из localStorage в useEffect)
-  const getFlexApr = () => ({
-    ETH:  +(5.5  + Math.random() * 3.0).toFixed(2),  // 5.5–8.5
-    BTC:  +(4.1  + Math.random() * 2.2).toFixed(2),  // 4.1–6.3
-    USDT: +(8.35 + Math.random() * 2.65).toFixed(2), // 8.35–11
-    SOL:  +(8.1  + Math.random() * 2.6).toFixed(2),  // 8.1–10.7
-    XRP:  +(5.8  + Math.random() * 1.7).toFixed(2),  // 5.8–7.5
-    BNB:  +(7.3  + Math.random() * 2.4).toFixed(2),  // 7.3–9.7
-    LINK: +(8.4  + Math.random() * 3.3).toFixed(2),  // 8.4–11.7
-    NEAR: +(11   + Math.random() * 2.8).toFixed(2),  // 11–13.8
+  // TVL — зберігається в localStorage, крок 1–4M кожні 6 годин
+  const [tvl, setTvl] = useState<number>(() => {
+    if (typeof window === "undefined") return 307;
+    try {
+      const val = localStorage.getItem("nx_tvl");
+      const ts  = localStorage.getItem("nx_tvl_t");
+      if (val && ts && Date.now() - parseInt(ts) < 6 * 3600000) return parseInt(val);
+      const init = 300 + Math.floor(Math.random() * 111);
+      localStorage.setItem("nx_tvl", String(init));
+      localStorage.setItem("nx_tvl_t", String(Date.now()));
+      return init;
+    } catch { return 307; }
   });
-  const [flexApr, setFlexApr] = useState(getFlexApr);
 
-  // TVL: localStorage, обновляется раз в 6 часов с шагом 1–4M
-  useEffect(() => {
-    const TVL_KEY = "nexus_tvl";
-    const SIX_H = 6 * 60 * 60 * 1000;
-    const stepTvl = (cur: number) => {
-      const step = 1 + Math.floor(Math.random() * 4);
-      const dir = Math.random() > 0.25 ? 1 : -1;
-      return Math.min(Math.max(cur + dir * step, 300), 490);
-    };
-    const stored = localStorage.getItem(TVL_KEY);
-    if (stored) {
-      const { value, ts } = JSON.parse(stored);
-      if (Date.now() - ts < SIX_H) {
-        setTvl(value);
-      } else {
-        const next = stepTvl(value);
-        localStorage.setItem(TVL_KEY, JSON.stringify({ value: next, ts: Date.now() }));
-        setTvl(next);
-      }
-    } else {
-      const initial = 349;
-      localStorage.setItem(TVL_KEY, JSON.stringify({ value: initial, ts: Date.now() }));
-      setTvl(initial);
+  // Діапазони Flexible APR
+  const APR_RANGES: Record<string, [number, number]> = {
+    ETH:  [7.2,  9.5],
+    BTC:  [4.1,  6.5],
+    USDT: [8.35, 10.5],
+    SOL:  [8.1,  10.0],
+    XRP:  [5.8,  7.8],
+    BNB:  [7.3,  9.0],
+    LINK: [8.4,  11.0],
+    NEAR: [11.0, 12.5],
+  };
+
+  // Початкові значення APR (рандом в діапазоні)
+  const initFlexApr = (): Record<string, number> => {
+    const r: Record<string, number> = {};
+    for (const [a, [min, max]] of Object.entries(APR_RANGES))
+      r[a] = +(min + Math.random() * (max - min)).toFixed(2);
+    return r;
+  };
+
+  // Крок ±1.25% зі збереженням в межах діапазону
+  const stepFlexApr = (prev: Record<string, number>): Record<string, number> => {
+    const r: Record<string, number> = {};
+    for (const [a, [min, max]] of Object.entries(APR_RANGES)) {
+      const step = 1.25 * (Math.random() > 0.5 ? 1 : -1);
+      r[a] = +Math.min(max, Math.max(min, (prev[a] ?? (min + max) / 2) + step)).toFixed(2);
     }
-    const interval = setInterval(() => {
-      const s = localStorage.getItem(TVL_KEY);
-      const cur = s ? JSON.parse(s).value : 349;
-      const next = stepTvl(cur);
-      localStorage.setItem(TVL_KEY, JSON.stringify({ value: next, ts: Date.now() }));
-      setTvl(next);
-    }, SIX_H);
-    return () => clearInterval(interval);
-  }, []);
+    return r;
+  };
 
-  // FlexAPR: localStorage, обновляется раз в 12 часов с шагом ±1.25%
+  // Flexible APR — зберігається в localStorage, крок ±1.25% кожні 12 годин
+  const [flexApr, setFlexApr] = useState<Record<string, number>>(() => {
+    if (typeof window === "undefined") return initFlexApr();
+    try {
+      const val = localStorage.getItem("nx_apr");
+      const ts  = localStorage.getItem("nx_apr_t");
+      if (val && ts && Date.now() - parseInt(ts) < 12 * 3600000) return JSON.parse(val);
+      const init = initFlexApr();
+      localStorage.setItem("nx_apr", JSON.stringify(init));
+      localStorage.setItem("nx_apr_t", String(Date.now()));
+      return init;
+    } catch { return initFlexApr(); }
+  });
+
   useEffect(() => {
-    const APR_KEY = "nexus_flex_apr";
-    const TWELVE_H = 12 * 60 * 60 * 1000;
-    const RANGES: Record<string, { min: number; max: number }> = {
-      ETH:  { min: 5.5,  max: 8.5  },
-      BTC:  { min: 4.1,  max: 6.3  },
-      USDT: { min: 8.35, max: 11.0 },
-      SOL:  { min: 8.1,  max: 10.7 },
-      XRP:  { min: 5.8,  max: 7.5  },
-      BNB:  { min: 7.3,  max: 9.7  },
-      LINK: { min: 8.4,  max: 11.7 },
-      NEAR: { min: 11.0, max: 13.8 },
-    };
-    const stepApr = (cur: Record<string, number>) => {
-      const next: Record<string, number> = {};
-      for (const [k, r] of Object.entries(RANGES)) {
-        const dir = Math.random() > 0.5 ? 1 : -1;
-        next[k] = +Math.min(Math.max((cur[k] ?? (r.min + r.max) / 2) + dir * 1.25, r.min), r.max).toFixed(2);
-      }
-      return next;
-    };
-    const stored = localStorage.getItem(APR_KEY);
-    if (stored) {
-      const { values, ts } = JSON.parse(stored);
-      if (Date.now() - ts < TWELVE_H) {
-        setFlexApr(values);
-      } else {
-        const next = stepApr(values);
-        localStorage.setItem(APR_KEY, JSON.stringify({ values: next, ts: Date.now() }));
-        setFlexApr(next);
-      }
-    } else {
-      const initial = getFlexApr();
-      localStorage.setItem(APR_KEY, JSON.stringify({ values: initial, ts: Date.now() }));
-      setFlexApr(initial);
-    }
-    const interval = setInterval(() => {
-      const s = localStorage.getItem(APR_KEY);
-      const cur = s ? JSON.parse(s).values : getFlexApr();
-      const next = stepApr(cur);
-      localStorage.setItem(APR_KEY, JSON.stringify({ values: next, ts: Date.now() }));
-      setFlexApr(next);
-    }, TWELVE_H);
-    return () => clearInterval(interval);
-  }, []);
+    const tvlInterval = setInterval(() => {
+      setTvl(prev => {
+        const step = (1 + Math.floor(Math.random() * 4)) * (Math.random() > 0.5 ? 1 : -1);
+        const next = Math.min(410, Math.max(300, prev + step));
+        try { localStorage.setItem("nx_tvl", String(next)); localStorage.setItem("nx_tvl_t", String(Date.now())); } catch {}
+        return next;
+      });
+    }, 6 * 3600000);
 
+    const aprInterval = setInterval(() => {
+      setFlexApr(prev => {
+        const next = stepFlexApr(prev);
+        try { localStorage.setItem("nx_apr", JSON.stringify(next)); localStorage.setItem("nx_apr_t", String(Date.now())); } catch {}
+        return next;
+      });
+    }, 12 * 3600000);
+
+    return () => { clearInterval(tvlInterval); clearInterval(aprInterval); };
+  }, []);
   const useScrollReveal = () => {
     const ref = useRef<HTMLDivElement>(null);
     const [visible, setVisible] = useState(false);
@@ -217,8 +199,8 @@ export default function InvestPage() {
     USDT: [
       { name: "Flexible", apr: +flexApr.USDT, lock: "No lock period" },
       { name: "30 Days", apr: 13.5, lock: "30 days lock" },
-      { name: "90 Days", apr: 18.2, lock: "90 days lock", popular: true },
-      { name: "180 Days", apr: 19.8, lock: "180 days lock" },
+      { name: "90 Days", apr: 16.8, lock: "90 days lock", popular: true },
+      { name: "180 Days", apr: 18.2, lock: "180 days lock" },
     ],
     SOL: [
       { name: "Flexible", apr: +flexApr.SOL, lock: "No lock period" },
