@@ -692,7 +692,7 @@ export default function InvestPage() {
                               </button>
                               {showFlexTooltip && (
                                 <div
-                                  className="absolute left-0 top-6 z-50 w-64 rounded-xl border border-slate-600/80 bg-slate-800 shadow-2xl p-4 text-left"
+                                  className="absolute left-0 top-6 z-[9999] w-64 rounded-xl border border-slate-600/80 bg-slate-800 shadow-2xl p-4 text-left"
                                   onClick={(e) => e.stopPropagation()}
                                 >
                                   <div className="flex justify-between items-start mb-2">
