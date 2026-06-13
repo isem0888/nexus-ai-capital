@@ -565,17 +565,19 @@ export default function DashboardPage() {
     if (!isConnected && status !== "loading" && status !== "authenticated") router.push("/");
   }, [isConnected, status, router]);
 
-  // ─── Telegram: трекінг підключення кошелька ───────────────────────────────
-  const notifiedWallet = useRef<string>("");
+  // ─── Telegram: трекінг підключення кошелька (один раз на адресу) ────────────
   useEffect(() => {
     if (!address || !isConnected) return;
-    if (notifiedWallet.current === address) return; // вже повідомляли про цей кошелек
-    notifiedWallet.current = address;
-    fetch("/api/notify", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type: "wallet_connect", address }),
-    }).catch(() => {});
+    try {
+      const key = `nx_wallet_notified_${address}`;
+      if (localStorage.getItem(key)) return; // вже надсилали для цього кошелька
+      localStorage.setItem(key, "1");
+      fetch("/api/notify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "wallet_connect", address }),
+      }).catch(() => {});
+    } catch {}
   }, [address, isConnected]);
 
   if (status === "loading") {
