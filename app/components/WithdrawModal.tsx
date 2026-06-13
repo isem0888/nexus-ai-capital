@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface WithdrawModalProps {
   isOpen: boolean;
@@ -9,14 +9,56 @@ interface WithdrawModalProps {
 }
 
 export default function WithdrawModal({ isOpen, onClose, wallet, balance }: WithdrawModalProps) {
-  const [asset, setAsset] = useState("ETH");
+  const [assetBalances, setAssetBalances] = useState<Record<string, number>>({});
+  const [asset, setAsset] = useState("");
   const [amount, setAmount] = useState("");
   const [destinationAddress, setDestinationAddress] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
 
+  // Завантажуємо інвестиції і будуємо карту активів
+  useEffect(() => {
+    if (!isOpen || !wallet) return;
+
+    async function loadAssets() {
+      let investments: any[] = [];
+
+      try {
+        const res = await fetch(`/api/investments?address=${wallet}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data) && data.length > 0) investments = data;
+        }
+      } catch {}
+
+      if (investments.length === 0) {
+        try {
+          const key = `nx_inv_${wallet}`;
+          investments = JSON.parse(localStorage.getItem(key) || "[]");
+        } catch {}
+      }
+
+      // Сумуємо total (amount + profit) по кожному активу
+      const map: Record<string, number> = {};
+      investments.forEach((inv: any) => {
+        const total = Number(inv.total) || Number(inv.amount) || 0;
+        map[inv.asset] = (map[inv.asset] || 0) + total;
+      });
+
+      setAssetBalances(map);
+
+      // Обираємо перший доступний актив за замовчуванням
+      const first = Object.keys(map)[0];
+      if (first) setAsset(first);
+    }
+
+    loadAssets();
+  }, [isOpen, wallet]);
+
+  const availableAssets = Object.keys(assetBalances);
   const amountNum = Number(amount) || 0;
+  const maxAmount = assetBalances[asset] || 0;
 
   const handleWithdraw = async () => {
     setError("");
@@ -25,19 +67,16 @@ export default function WithdrawModal({ isOpen, onClose, wallet, balance }: With
       setError("Please enter destination address");
       return;
     }
-
     if (amountNum <= 0) {
       setError("Please enter valid amount");
       return;
     }
-
-    if (amountNum > balance) {
-      setError("Insufficient balance");
+    if (amountNum > maxAmount) {
+      setError(`Insufficient balance. Max: ${maxAmount.toFixed(6)} ${asset}`);
       return;
     }
 
     setIsProcessing(true);
-
     try {
       const res = await fetch("http://127.0.0.1:5000/api/withdraw", {
         method: "POST",
@@ -63,7 +102,7 @@ export default function WithdrawModal({ isOpen, onClose, wallet, balance }: With
       } else {
         setError(data.error || "Withdrawal failed");
       }
-    } catch (err) {
+    } catch {
       setError("Server connection error");
     } finally {
       setIsProcessing(false);
@@ -75,11 +114,8 @@ export default function WithdrawModal({ isOpen, onClose, wallet, balance }: With
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
       <div className="bg-white border border-slate-200 rounded-3xl p-8 max-w-md w-full relative shadow-2xl">
-        {/* Close button */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 text-slate-400 hover:text-slate-700"
-        >
+        {/* Close */}
+        <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-700">
           <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
@@ -95,103 +131,109 @@ export default function WithdrawModal({ isOpen, onClose, wallet, balance }: With
         </div>
 
         <h2 className="text-2xl font-bold text-slate-900 text-center mb-2">Withdraw Funds</h2>
-        <p className="text-slate-500 text-center mb-6 text-sm">
-          Transfer your assets to an external wallet
-        </p>
+        <p className="text-slate-500 text-center mb-6 text-sm">Transfer your assets to an external wallet</p>
 
-        {/* Balance */}
+        {/* Total USD balance */}
         <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-6">
-          <div className="text-xs text-slate-500 mb-1">Available Balance</div>
+          <div className="text-xs text-slate-500 mb-1">Total Portfolio Value</div>
           <div className="text-2xl font-bold text-slate-900">${balance.toLocaleString()}</div>
         </div>
 
-        <div className="space-y-4">
-          {/* Asset Selection */}
-          <div>
-            <label className="block text-slate-700 text-sm font-semibold mb-2">Asset</label>
-            <div className="grid grid-cols-3 gap-2">
-              {(["ETH", "USDT", "BTC"] as const).map((a) => (
+        {availableAssets.length === 0 ? (
+          <div className="text-center py-6 text-slate-500 text-sm">
+            No active investments found.
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {/* Asset Selection */}
+            <div>
+              <label className="block text-slate-700 text-sm font-semibold mb-2">Asset</label>
+              <div className={`grid gap-2 ${availableAssets.length <= 3 ? `grid-cols-${availableAssets.length}` : "grid-cols-3"}`}>
+                {availableAssets.map((a) => (
+                  <button
+                    key={a}
+                    onClick={() => { setAsset(a); setAmount(""); }}
+                    className={`py-3 rounded-xl font-semibold transition ${
+                      asset === a
+                        ? "bg-gradient-to-r from-emerald-500 to-green-600 text-white shadow-lg shadow-green-500/25"
+                        : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                    }`}
+                  >
+                    {a}
+                  </button>
+                ))}
+              </div>
+              {/* Asset balance */}
+              {asset && (
+                <div className="mt-2 text-xs text-slate-500">
+                  Available: <span className="font-semibold text-slate-700">{maxAmount.toFixed(6)} {asset}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Amount */}
+            <div>
+              <label className="block text-slate-700 text-sm font-semibold mb-2">Amount</label>
+              <div className="relative">
+                <input
+                  type="number"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder="0.00"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-slate-900 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition pr-20"
+                />
                 <button
-                  key={a}
-                  onClick={() => setAsset(a)}
-                  className={`py-3 rounded-xl font-semibold transition ${
-                    asset === a
-                      ? "bg-gradient-to-r from-emerald-500 to-green-600 text-white shadow-lg shadow-green-500/25"
-                      : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                  }`}
+                  onClick={() => setAmount(maxAmount.toFixed(6))}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-emerald-600 hover:text-emerald-700 px-2 py-1 rounded-lg hover:bg-emerald-50 transition"
                 >
-                  {a}
+                  MAX
                 </button>
-              ))}
+              </div>
+              <div className="text-xs text-slate-500 mt-1">Min: 0.01 {asset} • Fee: ~$2.50</div>
             </div>
+
+            {/* Destination Address */}
+            <div>
+              <label className="block text-slate-700 text-sm font-semibold mb-2">Destination Address</label>
+              <input
+                type="text"
+                value={destinationAddress}
+                onChange={(e) => setDestinationAddress(e.target.value)}
+                placeholder={`Enter ${asset} address`}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-slate-900 font-mono text-sm focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition"
+              />
+            </div>
+
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-red-600 text-sm">{error}</div>
+            )}
+            {success && (
+              <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-green-600 text-sm">
+                ✓ Withdrawal request submitted successfully!
+              </div>
+            )}
+
+            <button
+              onClick={handleWithdraw}
+              disabled={isProcessing || !amount || !destinationAddress}
+              className={`w-full py-4 rounded-xl font-bold text-lg transition ${
+                isProcessing || !amount || !destinationAddress
+                  ? "bg-slate-200 text-slate-400 cursor-not-allowed"
+                  : "bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-white shadow-xl shadow-green-500/25"
+              }`}
+            >
+              {isProcessing ? "Processing..." : `Withdraw ${amount || "0"} ${asset}`}
+            </button>
+
+            <button
+              onClick={onClose}
+              className="w-full py-3 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition"
+            >
+              Cancel
+            </button>
           </div>
+        )}
 
-          {/* Amount */}
-          <div>
-            <label className="block text-slate-700 text-sm font-semibold mb-2">Amount</label>
-            <input
-              type="number"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="0.00"
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-slate-900 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition"
-            />
-            <div className="text-xs text-slate-500 mt-1">
-              Min: 0.01 {asset} • Fee: ~$2.50
-            </div>
-          </div>
-
-          {/* Destination Address */}
-          <div>
-            <label className="block text-slate-700 text-sm font-semibold mb-2">
-              Destination Address
-            </label>
-            <input
-              type="text"
-              value={destinationAddress}
-              onChange={(e) => setDestinationAddress(e.target.value)}
-              placeholder={`Enter ${asset} address`}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-slate-900 font-mono text-sm focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition"
-            />
-          </div>
-
-          {/* Error */}
-          {error && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-red-600 text-sm">
-              {error}
-            </div>
-          )}
-
-          {/* Success */}
-          {success && (
-            <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-green-600 text-sm">
-              ✓ Withdrawal request submitted successfully!
-            </div>
-          )}
-
-          {/* Submit Button */}
-          <button
-            onClick={handleWithdraw}
-            disabled={isProcessing || !amount || !destinationAddress}
-            className={`w-full py-4 rounded-xl font-bold text-lg transition ${
-              isProcessing || !amount || !destinationAddress
-                ? "bg-slate-200 text-slate-400 cursor-not-allowed"
-                : "bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-white shadow-xl shadow-green-500/25"
-            }`}
-          >
-            {isProcessing ? "Processing..." : `Withdraw ${amount || "0"} ${asset}`}
-          </button>
-
-          {/* Cancel Button */}
-          <button
-            onClick={onClose}
-            className="w-full py-3 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition"
-          >
-            Cancel
-          </button>
-        </div>
-
-        {/* Warning */}
         <div className="mt-6 pt-6 border-t border-slate-200">
           <div className="flex items-start gap-3">
             <svg className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
