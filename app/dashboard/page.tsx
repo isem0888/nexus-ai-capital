@@ -218,7 +218,7 @@ function OverviewSection({ stats, onWithdraw, address, prices }: any) {
         </div>
       )}
 
-      <div className="rounded-2xl border border-slate-700/50 bg-slate-900/60 backdrop-blur-xl p-5 md:p-7">
+      <div className="sm:hidden rounded-2xl border border-slate-700/50 bg-slate-900/60 backdrop-blur-xl p-5 md:p-7">
         <h2 className="text-base font-semibold text-slate-300 uppercase tracking-wider mb-4">Quick Actions</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Link href="/invest" className="flex items-center gap-4 p-4 rounded-xl border border-blue-500/25 bg-blue-500/10 hover:bg-blue-500/20 transition group">
