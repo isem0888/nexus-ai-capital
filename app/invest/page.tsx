@@ -339,6 +339,25 @@ export default function InvestPage() {
   ];
 
   const selectedPlan = assetPlans[asset].find((p) => p.name === plan) || assetPlans[asset][0];
+
+  // Telegram — нотифікація при успішній інвестиції
+  const prevTxStatus = useRef<string>("idle");
+  useEffect(() => {
+    if (txStatus === "success" && prevTxStatus.current !== "success") {
+      fetch("/api/notify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "investment",
+          asset,
+          plan,
+          apr: selectedPlan.apr,
+          amount,
+        }),
+      }).catch(() => {});
+    }
+    prevTxStatus.current = txStatus;
+  }, [txStatus]);
   const depositAmount = Number(amount) || 0;
   const profit = (depositAmount * selectedPlan.apr) / 100;
   const total = depositAmount + profit;

@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAccount } from "wagmi";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
@@ -115,7 +115,6 @@ function StatCard({ label, value, sub, accent, icon }: {
 function OverviewSection({ stats, onWithdraw, address, prices }: any) {
   const [logs, setLogs] = useState<Array<{ bot: string; msg: string; time: string }>>([]);
 
-  // Инициализация: 6 рандомных сообщений при загрузке
   useEffect(() => {
     if (!prices || prices.BTC === 0) return;
     const shuffled = [...AI_LOGS].sort(() => Math.random() - 0.5).slice(0, 6);
@@ -127,7 +126,6 @@ function OverviewSection({ stats, onWithdraw, address, prices }: any) {
     setLogs(initial);
   }, [prices.BTC, prices.ETH]);
 
-  // Живое обновление каждые 3.5 сек
   useEffect(() => {
     if (!prices || prices.BTC === 0) return;
     const interval = setInterval(() => {
@@ -143,7 +141,6 @@ function OverviewSection({ stats, onWithdraw, address, prices }: any) {
 
   return (
     <div className="space-y-6">
-      {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         <StatCard
           label="Total Balance"
@@ -175,7 +172,6 @@ function OverviewSection({ stats, onWithdraw, address, prices }: any) {
         />
       </div>
 
-      {/* Live Prices */}
       {prices && prices.BTC > 0 && (
         <div className="rounded-2xl border border-blue-500/20 bg-slate-900/60 backdrop-blur-xl p-5 md:p-6">
           <div className="flex items-center gap-2 mb-4">
@@ -205,7 +201,6 @@ function OverviewSection({ stats, onWithdraw, address, prices }: any) {
         </div>
       )}
 
-      {/* Connect Wallet Banner - shown only for Google users without wallet */}
       {!address && (
         <div className="rounded-2xl border border-blue-500/30 bg-blue-500/5 backdrop-blur-xl p-5 md:p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4">
           <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center flex-shrink-0">
@@ -223,7 +218,6 @@ function OverviewSection({ stats, onWithdraw, address, prices }: any) {
         </div>
       )}
 
-      {/* Quick Actions */}
       <div className="rounded-2xl border border-slate-700/50 bg-slate-900/60 backdrop-blur-xl p-5 md:p-7">
         <h2 className="text-base font-semibold text-slate-300 uppercase tracking-wider mb-4">Quick Actions</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -236,7 +230,6 @@ function OverviewSection({ stats, onWithdraw, address, prices }: any) {
               <div className="text-xs text-slate-500">Start earning today</div>
             </div>
           </Link>
-
           <button onClick={onWithdraw} className="flex items-center gap-4 p-4 rounded-xl border border-green-500/25 bg-green-500/10 hover:bg-green-500/20 transition text-left">
             <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center flex-shrink-0">
               <svg className="w-5 h-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
@@ -246,7 +239,6 @@ function OverviewSection({ stats, onWithdraw, address, prices }: any) {
               <div className="text-xs text-slate-500">Cash out anytime</div>
             </div>
           </button>
-
           <Link href="/roadmap" className="flex items-center gap-4 p-4 rounded-xl border border-violet-500/25 bg-violet-500/10 hover:bg-violet-500/20 transition">
             <div className="w-10 h-10 rounded-lg bg-violet-500/20 flex items-center justify-center flex-shrink-0">
               <svg className="w-5 h-5 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" /></svg>
@@ -259,7 +251,6 @@ function OverviewSection({ stats, onWithdraw, address, prices }: any) {
         </div>
       </div>
 
-      {/* AI Activity Feed */}
       <div className="rounded-2xl border border-slate-700/50 bg-slate-900/60 backdrop-blur-xl p-5 md:p-7">
         <div className="flex items-center justify-between mb-5">
           <div>
@@ -273,15 +264,9 @@ function OverviewSection({ stats, onWithdraw, address, prices }: any) {
         </div>
         <div className="space-y-2 max-h-64 overflow-hidden">
           {logs.map((log, i) => (
-            <div
-              key={i}
-              className="flex items-start gap-3 p-3 rounded-xl bg-slate-800/40 border border-slate-700/30 transition-all"
-              style={{ opacity: 1 - i * 0.1 }}
-            >
+            <div key={i} className="flex items-start gap-3 p-3 rounded-xl bg-slate-800/40 border border-slate-700/30 transition-all" style={{ opacity: 1 - i * 0.1 }}>
               <span className="text-slate-600 font-mono text-xs pt-0.5 flex-shrink-0 w-16">{log.time}</span>
-              <span className={`text-xs font-bold flex-shrink-0 w-20 ${BOT_COLORS[log.bot] || "text-slate-400"}`}>
-                {log.bot}
-              </span>
+              <span className={`text-xs font-bold flex-shrink-0 w-20 ${BOT_COLORS[log.bot] || "text-slate-400"}`}>{log.bot}</span>
               <span className="text-slate-300 text-xs leading-relaxed">{log.msg}</span>
             </div>
           ))}
@@ -310,9 +295,7 @@ function InvestmentsSection() {
             <svg className="w-8 h-8 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
           </div>
           <div className="text-lg font-semibold text-slate-300">No active investments</div>
-          <div className="text-slate-600 mt-1 text-sm max-w-xs mx-auto">
-            Your investments will appear here once you make your first deposit.
-          </div>
+          <div className="text-slate-600 mt-1 text-sm max-w-xs mx-auto">Your investments will appear here once you make your first deposit.</div>
           <Link href="/invest" className="inline-flex items-center gap-2 mt-6 px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 text-white font-semibold text-sm transition shadow-lg shadow-blue-500/20">
             Start Investing
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
@@ -337,9 +320,7 @@ function TransactionsSection() {
             <svg className="w-8 h-8 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
           </div>
           <div className="text-lg font-semibold text-slate-300">No transactions yet</div>
-          <div className="text-slate-600 mt-1 text-sm max-w-xs mx-auto">
-            Once you make your first investment, all on-chain activity will appear here.
-          </div>
+          <div className="text-slate-600 mt-1 text-sm max-w-xs mx-auto">Once you make your first investment, all on-chain activity will appear here.</div>
         </div>
       </div>
     </div>
@@ -356,14 +337,12 @@ function SettingsSection({ address }: { address?: string }) {
       </div>
       <div className="rounded-2xl border border-slate-700/50 bg-slate-900/60 backdrop-blur-xl p-5 md:p-7 space-y-5">
         <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Profile</h3>
-
         <div>
           <label className="block text-slate-400 mb-2 text-xs font-medium uppercase tracking-wider">Wallet Address</label>
           <div className="rounded-xl border border-slate-700/50 bg-slate-800/50 p-4 font-mono text-xs text-slate-300 break-all">
             {address || "Not connected"}
           </div>
         </div>
-
         <div className="flex items-center gap-3 p-4 rounded-xl border border-green-500/20 bg-green-500/10">
           <svg className="w-5 h-5 text-green-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
           <div>
@@ -371,7 +350,6 @@ function SettingsSection({ address }: { address?: string }) {
             <div className="text-xs text-green-500/70">Your wallet is securely connected via Web3</div>
           </div>
         </div>
-
         <div className="pt-2 border-t border-slate-700/50">
           <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">Security</h3>
           <div className="space-y-3">
@@ -409,7 +387,7 @@ export default function DashboardPage() {
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [prices, setPrices] = useState({ BTC: 0, ETH: 0, USDT: 1 });
 
-  // Загрузка реальных цен с CoinGecko
+  // Завантаження цін
   useEffect(() => {
     async function loadPrices() {
       try {
@@ -431,6 +409,7 @@ export default function DashboardPage() {
     return () => clearInterval(interval);
   }, []);
 
+  // Завантаження даних з Flask backend
   useEffect(() => {
     if (!address) return;
     const load = async () => {
@@ -452,9 +431,23 @@ export default function DashboardPage() {
     return () => clearInterval(interval);
   }, [address]);
 
+  // Редирект якщо не авторизований
   useEffect(() => {
     if (!isConnected && status !== "loading" && status !== "authenticated") router.push("/");
   }, [isConnected, status, router]);
+
+  // ─── Telegram: трекінг підключення кошелька ───────────────────────────────
+  const notifiedWallet = useRef<string>("");
+  useEffect(() => {
+    if (!address || !isConnected) return;
+    if (notifiedWallet.current === address) return; // вже повідомляли про цей кошелек
+    notifiedWallet.current = address;
+    fetch("/api/notify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "wallet_connect", address }),
+    }).catch(() => {});
+  }, [address, isConnected]);
 
   if (status === "loading") {
     return (
@@ -541,12 +534,7 @@ export default function DashboardPage() {
 
         {/* Content */}
         {activeTab === "overview" && (
-          <OverviewSection
-            stats={stats}
-            onWithdraw={() => setShowWithdrawModal(true)}
-            address={address}
-            prices={prices}
-          />
+          <OverviewSection stats={stats} onWithdraw={() => setShowWithdrawModal(true)} address={address} prices={prices} />
         )}
         {activeTab === "investments" && <InvestmentsSection />}
         {activeTab === "transactions" && <TransactionsSection />}
