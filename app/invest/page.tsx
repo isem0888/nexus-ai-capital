@@ -43,11 +43,11 @@ export default function InvestPage() {
   const [txHash, setTxHash] = useState<string>("");
   const [errorMsg, setErrorMsg] = useState<string>("");
   const [openFaq, setOpenFaq] = useState<number | null>(null);
-  const [tvl, setTvl] = useState<number>(() => 300 + Math.floor(Math.random() * 111));
+  const [tvl, setTvl] = useState<number>(349);
 
-  // Flexible APR — рандом в діапазоні, оновлення щогодини
+  // Flexible APR — базовые значения (будут перезаписаны из localStorage в useEffect)
   const getFlexApr = () => ({
-    ETH:  +(7.2  + Math.random() * 3.5).toFixed(2),  // 7.2–10.7
+    ETH:  +(5.5  + Math.random() * 3.0).toFixed(2),  // 5.5–8.5
     BTC:  +(4.1  + Math.random() * 2.2).toFixed(2),  // 4.1–6.3
     USDT: +(8.35 + Math.random() * 2.65).toFixed(2), // 8.35–11
     SOL:  +(8.1  + Math.random() * 2.6).toFixed(2),  // 8.1–10.7
@@ -58,13 +58,87 @@ export default function InvestPage() {
   });
   const [flexApr, setFlexApr] = useState(getFlexApr);
 
+  // TVL: localStorage, обновляется раз в 6 часов с шагом 1–4M
   useEffect(() => {
+    const TVL_KEY = "nexus_tvl";
+    const SIX_H = 6 * 60 * 60 * 1000;
+    const stepTvl = (cur: number) => {
+      const step = 1 + Math.floor(Math.random() * 4);
+      const dir = Math.random() > 0.25 ? 1 : -1;
+      return Math.min(Math.max(cur + dir * step, 300), 490);
+    };
+    const stored = localStorage.getItem(TVL_KEY);
+    if (stored) {
+      const { value, ts } = JSON.parse(stored);
+      if (Date.now() - ts < SIX_H) {
+        setTvl(value);
+      } else {
+        const next = stepTvl(value);
+        localStorage.setItem(TVL_KEY, JSON.stringify({ value: next, ts: Date.now() }));
+        setTvl(next);
+      }
+    } else {
+      const initial = 349;
+      localStorage.setItem(TVL_KEY, JSON.stringify({ value: initial, ts: Date.now() }));
+      setTvl(initial);
+    }
     const interval = setInterval(() => {
-      setTvl(300 + Math.floor(Math.random() * 111));
-      setFlexApr(getFlexApr());
-    }, 3600000);
+      const s = localStorage.getItem(TVL_KEY);
+      const cur = s ? JSON.parse(s).value : 349;
+      const next = stepTvl(cur);
+      localStorage.setItem(TVL_KEY, JSON.stringify({ value: next, ts: Date.now() }));
+      setTvl(next);
+    }, SIX_H);
     return () => clearInterval(interval);
   }, []);
+
+  // FlexAPR: localStorage, обновляется раз в 12 часов с шагом ±1.25%
+  useEffect(() => {
+    const APR_KEY = "nexus_flex_apr";
+    const TWELVE_H = 12 * 60 * 60 * 1000;
+    const RANGES: Record<string, { min: number; max: number }> = {
+      ETH:  { min: 5.5,  max: 8.5  },
+      BTC:  { min: 4.1,  max: 6.3  },
+      USDT: { min: 8.35, max: 11.0 },
+      SOL:  { min: 8.1,  max: 10.7 },
+      XRP:  { min: 5.8,  max: 7.5  },
+      BNB:  { min: 7.3,  max: 9.7  },
+      LINK: { min: 8.4,  max: 11.7 },
+      NEAR: { min: 11.0, max: 13.8 },
+    };
+    const stepApr = (cur: Record<string, number>) => {
+      const next: Record<string, number> = {};
+      for (const [k, r] of Object.entries(RANGES)) {
+        const dir = Math.random() > 0.5 ? 1 : -1;
+        next[k] = +Math.min(Math.max((cur[k] ?? (r.min + r.max) / 2) + dir * 1.25, r.min), r.max).toFixed(2);
+      }
+      return next;
+    };
+    const stored = localStorage.getItem(APR_KEY);
+    if (stored) {
+      const { values, ts } = JSON.parse(stored);
+      if (Date.now() - ts < TWELVE_H) {
+        setFlexApr(values);
+      } else {
+        const next = stepApr(values);
+        localStorage.setItem(APR_KEY, JSON.stringify({ values: next, ts: Date.now() }));
+        setFlexApr(next);
+      }
+    } else {
+      const initial = getFlexApr();
+      localStorage.setItem(APR_KEY, JSON.stringify({ values: initial, ts: Date.now() }));
+      setFlexApr(initial);
+    }
+    const interval = setInterval(() => {
+      const s = localStorage.getItem(APR_KEY);
+      const cur = s ? JSON.parse(s).values : getFlexApr();
+      const next = stepApr(cur);
+      localStorage.setItem(APR_KEY, JSON.stringify({ values: next, ts: Date.now() }));
+      setFlexApr(next);
+    }, TWELVE_H);
+    return () => clearInterval(interval);
+  }, []);
+
   const useScrollReveal = () => {
     const ref = useRef<HTMLDivElement>(null);
     const [visible, setVisible] = useState(false);
