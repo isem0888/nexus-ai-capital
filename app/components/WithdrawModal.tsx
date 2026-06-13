@@ -9,16 +9,35 @@ interface WithdrawModalProps {
   balance: number;
 }
 
+function fmtTimeLeft(ms: number): string {
+  if (ms <= 0) return "Available now";
+  const totalSec = Math.floor(ms / 1000);
+  const d = Math.floor(totalSec / 86400);
+  const h = Math.floor((totalSec % 86400) / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  if (d > 0) return `${d}d ${h}h ${m}m`;
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m}m`;
+}
+
 export default function WithdrawModal({ isOpen, onClose, onSuccess, wallet, balance }: WithdrawModalProps) {
   const [assetBalances, setAssetBalances] = useState<Record<string, number>>({});
+  const [lockedPlans, setLockedPlans] = useState<Array<{ asset: string; plan: string; unlockAt: number }>>([]);
   const [asset, setAsset] = useState("");
   const [amount, setAmount] = useState("");
   const [destinationAddress, setDestinationAddress] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [now, setNow] = useState(Date.now());
 
-  // Завантажуємо інвестиції і будуємо карту активів
+  // Tick every second for countdown
+  useEffect(() => {
+    if (!isOpen) return;
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [isOpen]);
+
   useEffect(() => {
     if (!isOpen || !wallet) return;
 
@@ -40,24 +59,34 @@ export default function WithdrawModal({ isOpen, onClose, onSuccess, wallet, bala
         } catch {}
       }
 
-      // Тільки Flexible (після 24г) або locked з минулою датою settlement
-      const now = new Date();
+      const nowMs = Date.now();
       const map: Record<string, number> = {};
+      const locked: Array<{ asset: string; plan: string; msLeft: number }> = [];
+
       investments.forEach((inv: any) => {
         const isFlexible = inv.plan === "Flexible";
-        const isExpired = inv.settlementAt && new Date(inv.settlementAt) <= now;
-        const hoursElapsed = (now.getTime() - new Date(inv.investedAt).getTime()) / (1000 * 60 * 60);
-        const is24hPassed = hoursElapsed >= 24;
+        const investedMs = new Date(inv.investedAt).getTime();
+        const settlementMs = inv.settlementAt ? new Date(inv.settlementAt).getTime() : null;
 
-        if (isFlexible && !is24hPassed) return; // Flexible але ще не пройшло 24г
-        if (!isFlexible && !isExpired) return;   // Locked і ще не закінчився
-        const deposited = Number(inv.amount) || 0;
-        map[inv.asset] = (map[inv.asset] || 0) + deposited;
+        if (isFlexible) {
+          const unlockAt = investedMs + 24 * 3600 * 1000;
+          if (unlockAt > nowMs) {
+            locked.push({ asset: inv.asset, plan: "Flexible", unlockAt });
+          } else {
+            map[inv.asset] = (map[inv.asset] || 0) + (Number(inv.amount) || 0);
+          }
+        } else {
+          if (settlementMs && settlementMs > nowMs) {
+            locked.push({ asset: inv.asset, plan: inv.plan, unlockAt: settlementMs });
+          } else {
+            map[inv.asset] = (map[inv.asset] || 0) + (Number(inv.amount) || 0);
+          }
+        }
       });
 
       setAssetBalances(map);
+      setLockedPlans(locked);
 
-      // Обираємо перший доступний актив за замовчуванням
       const first = Object.keys(map)[0];
       if (first) setAsset(first);
     }
@@ -71,38 +100,21 @@ export default function WithdrawModal({ isOpen, onClose, onSuccess, wallet, bala
 
   const handleWithdraw = async () => {
     setError("");
-
-    if (!destinationAddress) {
-      setError("Please enter destination address");
-      return;
-    }
-    if (amountNum <= 0) {
-      setError("Please enter valid amount");
-      return;
-    }
-    if (amountNum > maxAmount) {
-      setError(`Insufficient balance. Max: ${maxAmount.toFixed(6)} ${asset}`);
-      return;
-    }
+    if (!destinationAddress) { setError("Please enter destination address"); return; }
+    if (amountNum <= 0) { setError("Please enter valid amount"); return; }
+    if (amountNum > maxAmount) { setError(`Insufficient balance. Max: ${maxAmount.toFixed(6)} ${asset}`); return; }
 
     setIsProcessing(true);
     try {
       const res = await fetch("/api/withdraw", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          wallet,
-          asset,
-          amount: amountNum,
-          destination_address: destinationAddress,
-        }),
+        body: JSON.stringify({ wallet, asset, amount: amountNum, destination_address: destinationAddress }),
       });
-
       const data = await res.json();
-
       if (data.success) {
         setSuccess(true);
-        onSuccess?.(); // Миттєво оновлюємо баланс в дашборді
+        onSuccess?.();
         setTimeout(() => {
           onClose();
           setSuccess(false);
@@ -121,9 +133,11 @@ export default function WithdrawModal({ isOpen, onClose, onSuccess, wallet, bala
 
   if (!isOpen) return null;
 
+  const hasAnything = availableAssets.length > 0 || lockedPlans.length > 0;
+
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-      <div className="bg-white border border-slate-200 rounded-3xl p-8 max-w-md w-full relative shadow-2xl">
+      <div className="bg-white border border-slate-200 rounded-3xl p-8 max-w-md w-full relative shadow-2xl max-h-[90vh] overflow-y-auto">
         {/* Close */}
         <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-700">
           <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -149,15 +163,43 @@ export default function WithdrawModal({ isOpen, onClose, onSuccess, wallet, bala
           <div className="text-2xl font-bold text-slate-900">${balance.toLocaleString()}</div>
         </div>
 
-        {availableAssets.length === 0 ? (
-          <div className="text-center py-6">
-            <div className="text-slate-400 text-sm font-semibold mb-1">Withdrawal not available</div>
-            <div className="text-slate-500 text-xs leading-relaxed max-w-xs mx-auto">
-              Withdrawals are only available for <b className="text-cyan-400">Flexible</b> plans or after the lock period ends for other plans.
-            </div>
+        {/* Locked plans countdowns */}
+        {lockedPlans.length > 0 && (
+          <div className="mb-4 space-y-2">
+            <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Locked Plans</div>
+            {lockedPlans.map((lp, i) => {
+              return (
+                <div key={i} className="flex items-center justify-between px-4 py-3 rounded-xl bg-amber-50 border border-amber-200">
+                  <div className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-amber-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                    <div>
+                      <div className="text-sm font-semibold text-slate-700">{lp.asset} · {lp.plan}</div>
+                      <div className="text-xs text-slate-500">Available in</div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-mono font-bold text-amber-600 text-sm">{fmtTimeLeft(lp.unlockAt - now)}</div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        ) : (
+        )}
+
+        {availableAssets.length === 0 && lockedPlans.length === 0 && (
+          <div className="text-center py-6">
+            <div className="text-slate-400 text-sm font-semibold mb-1">No investments found</div>
+            <div className="text-slate-500 text-xs">Make an investment first to be able to withdraw.</div>
+          </div>
+        )}
+
+        {availableAssets.length > 0 && (
           <div className="space-y-4">
+            {availableAssets.length > 0 && (
+              <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Available to Withdraw</div>
+            )}
             {/* Asset Selection */}
             <div>
               <label className="block text-slate-700 text-sm font-semibold mb-2">Asset</label>
@@ -176,7 +218,6 @@ export default function WithdrawModal({ isOpen, onClose, onSuccess, wallet, bala
                   </button>
                 ))}
               </div>
-              {/* Asset balance */}
               {asset && (
                 <div className="mt-2 text-xs text-slate-500">
                   Available: <span className="font-semibold text-slate-700">{maxAmount.toFixed(6)} {asset}</span>
