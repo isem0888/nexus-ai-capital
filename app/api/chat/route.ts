@@ -34,10 +34,11 @@ export async function POST(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  // Forward to Telegram
+  // Forward to Telegram — Session: зберігаємо у plain text як fallback для парсингу
   const tgText =
     `💬 Nexus Support — нове повідомлення\n\n` +
-    (page_url ? `🌐 Page: ${page_url}\n` : "") +
+    `Session: ${session_id}\n` +
+    (page_url ? `Page: ${page_url}\n` : "") +
     `\n${message}`;
 
   const tgRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {

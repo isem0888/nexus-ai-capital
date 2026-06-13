@@ -73,22 +73,42 @@ export async function POST(req: NextRequest) {
     }
 
     // ── 2. Адмін відповідає на повідомлення підтримки ───────────────────────
-    // Підтримуємо і звичайні чати (message) і канали/групи (channel_post)
     const incomingMsg = body.message || body.channel_post;
     if (incomingMsg?.reply_to_message) {
       const replyText: string = incomingMsg.text || "";
       const replyToMsgId: number = incomingMsg.reply_to_message.message_id;
+      const chatId = incomingMsg.chat.id;
 
+      // Спосіб 1: пошук через tg_message_sessions
       const { data: sessionRow } = await supabase
         .from("tg_message_sessions")
         .select("session_id")
         .eq("tg_message_id", replyToMsgId)
         .single();
 
-      if (sessionRow?.session_id) {
+      let foundSession: string | null = sessionRow?.session_id || null;
+
+      // Спосіб 2: fallback — парсинг тексту оригінального повідомлення
+      if (!foundSession) {
+        const origText: string = incomingMsg.reply_to_message.text || "";
+        const m = origText.match(/Session:\s*([a-zA-Z0-9_-]+)/);
+        if (m) foundSession = m[1];
+      }
+
+      // Debug: повідомлення адміну про результат
+      await fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: `🔧 Debug reply\nmsg_id: ${replyToMsgId}\nsession: ${foundSession ?? "NOT FOUND"}`,
+        }),
+      });
+
+      if (foundSession) {
         await supabase.from("chat_messages").insert({
           id: `msg_${Date.now()}`,
-          session_id: sessionRow.session_id,
+          session_id: foundSession,
           sender: "admin",
           message: replyText,
         });
