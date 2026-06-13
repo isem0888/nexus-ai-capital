@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
-    // Обробляємо callback_query (натискання кнопки)
+    // ── 1. Callback query (кнопки виплат) ──────────────────────────────────
     if (body.callback_query) {
       const { id, data, message } = body.callback_query;
       const chat_id = message.chat.id.toString();
@@ -32,7 +32,6 @@ export async function POST(req: NextRequest) {
       if (data?.startsWith("confirm_withdrawal_")) {
         const withdrawalId = data.replace("confirm_withdrawal_", "");
 
-        // Оновлюємо статус в Supabase
         const { error } = await supabase
           .from("withdrawals")
           .update({ status: "completed" })
@@ -69,6 +68,31 @@ export async function POST(req: NextRequest) {
           );
         }
       }
+
+      return NextResponse.json({ ok: true });
+    }
+
+    // ── 2. Адмін відповідає на повідомлення підтримки ───────────────────────
+    // Коли ти робиш Reply на повідомлення в TG — бот отримує message з reply_to_message
+    if (body.message?.reply_to_message) {
+      const replyText: string = body.message.text || "";
+      const originalText: string = body.message.reply_to_message.text || "";
+
+      // Шукаємо session_id у тексті оригінального повідомлення (формат: Session: `abc123`)
+      const match = originalText.match(/Session:\s*`?([a-zA-Z0-9_-]+)`?/);
+      if (match) {
+        const session_id = match[1];
+
+        // Зберігаємо відповідь в chat_messages — chat widget одразу отримає її через polling
+        await supabase.from("chat_messages").insert({
+          id: `msg_${Date.now()}`,
+          session_id,
+          sender: "admin",
+          message: replyText,
+        });
+      }
+
+      return NextResponse.json({ ok: true });
     }
 
     return NextResponse.json({ ok: true });
