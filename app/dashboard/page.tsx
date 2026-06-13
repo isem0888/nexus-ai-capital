@@ -452,67 +452,11 @@ function InvestmentsSection({ address }: { address?: string }) {
                       </svg>
                     </button>
                   )}
-                  <button
-                    onClick={() => removeInvestment(inv.id)}
-                    title="Remove"
-                    className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-600 hover:text-red-400 hover:bg-red-500/10 transition"
-                  >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
                 </div>
               </div>
 
-              {/* ── Деталі (жалюзі) ── */}
-              {isExpanded && (
-                <div className="px-5 pb-5 border-t border-slate-700/40 pt-4 space-y-3">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <div className="bg-slate-800/40 rounded-xl p-3">
-                      <div className="text-xs text-slate-500 mb-1">Invested</div>
-                      <div className="font-bold text-white">{inv.amount} {inv.asset}</div>
-                    </div>
-                    <div className="bg-slate-800/40 rounded-xl p-3">
-                      <div className="text-xs text-slate-500 mb-1">Expected profit</div>
-                      <div className="font-bold text-green-400">+{inv.profit} {inv.asset}</div>
-                    </div>
-                    <div className="bg-slate-800/40 rounded-xl p-3">
-                      <div className="text-xs text-slate-500 mb-1">Start date</div>
-                      <div className="font-bold text-white text-sm">{fmt(inv.investedAt)}</div>
-                    </div>
-                    <div className="bg-slate-800/40 rounded-xl p-3">
-                      <div className="text-xs text-slate-500 mb-1">Settlement</div>
-                      <div className="font-bold text-white text-sm">
-                        {isFlexible ? "Anytime" : inv.settlementAt ? fmt(inv.settlementAt) : "—"}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-green-500/10 to-blue-500/10 border border-green-500/20">
-                    <span className="text-sm text-slate-400">Total at maturity</span>
-                    <span className="font-black text-white text-base">
-                      {inv.total} {inv.asset}
-                      <span className="text-green-400 text-sm font-semibold ml-2">(+{inv.apr}% APR)</span>
-                    </span>
-                  </div>
-                  {!isFlexible && progress !== null && (
-                    <div>
-                      <div className="flex justify-between text-xs text-slate-500 mb-1">
-                        <span>{progress}% complete</span>
-                        <span>{remaining} days remaining</span>
-                      </div>
-                      <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-gradient-to-r from-blue-500 to-violet-500 rounded-full transition-all"
-                          style={{ width: `${progress}%` }}
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Якщо 1 інвестиція — деталі завжди відкриті */}
-              {!multiMode && (
+              {/* ── Деталі: завжди відкриті якщо 1 інвестиція, або при розгортанні ── */}
+              {(isExpanded || !multiMode) && (
                 <div className="px-5 pb-5 border-t border-slate-700/40 pt-4 space-y-3">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     <div className="bg-slate-800/40 rounded-xl p-3">
