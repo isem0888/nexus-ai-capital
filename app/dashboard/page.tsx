@@ -538,27 +538,42 @@ export default function DashboardPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Завантаження даних з Flask backend
+  // Рахуємо stats з localStorage (інвестиції)
   useEffect(() => {
-    if (!address) return;
-    const load = async () => {
-      try {
-        const res = await fetch(`http://127.0.0.1:5000/api/dashboard/${address}`);
-        const data = await res.json();
-        setStats({
-          totalBalance: data.totalBalance || 0,
-          activeInvestments: data.activeInvestments || 0,
-          totalEarned: data.totalEarned || 0,
-          pendingWithdrawals: data.pendingWithdrawals || 0,
-        });
-      } catch (e) {
-        console.error(e);
-      }
-    };
-    load();
-    const interval = setInterval(load, 10000);
-    return () => clearInterval(interval);
-  }, [address]);
+    if (!prices.ETH && !prices.BTC) return; // ціни ще не завантажились
+    try {
+      const key = address ? `nx_inv_${address}` : "nx_inv_guest";
+      const investments: any[] = JSON.parse(localStorage.getItem(key) || "[]");
+
+      // Ціни для конвертації в USD
+      const priceMap: Record<string, number> = {
+        ETH: prices.ETH || 1630,
+        BTC: prices.BTC || 61000,
+        USDT: 1,
+        SOL: 65,
+        XRP: 1.17,
+        BNB: 580,
+        LINK: 8,
+        NEAR: 2.1,
+      };
+
+      let totalBalance = 0;
+      let totalEarned = 0;
+
+      investments.forEach((inv: any) => {
+        const p = priceMap[inv.asset] || 1;
+        totalBalance += (inv.amount || 0) * p;
+        totalEarned  += (inv.profit  || 0) * p;
+      });
+
+      setStats({
+        totalBalance:       Math.round(totalBalance),
+        activeInvestments:  investments.length,
+        totalEarned:        Math.round(totalEarned),
+        pendingWithdrawals: 0,
+      });
+    } catch {}
+  }, [address, prices.ETH, prices.BTC]);
 
   // Редирект якщо не авторизований
   useEffect(() => {
