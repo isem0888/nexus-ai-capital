@@ -78,7 +78,7 @@ export default function WithdrawModal({ isOpen, onClose, wallet, balance }: With
 
     setIsProcessing(true);
     try {
-      const res = await fetch("http://127.0.0.1:5000/api/withdraw", {
+      const res = await fetch("/api/withdraw", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
