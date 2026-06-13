@@ -309,14 +309,12 @@ function InvestmentsSection({ address }: { address?: string }) {
   useEffect(() => {
     async function load() {
       setLoading(true);
-      // Спочатку пробуємо API (Supabase)
       if (address) {
         try {
           const res = await fetch(`/api/investments?address=${address}`);
           if (res.ok) {
             const data = await res.json();
             if (Array.isArray(data) && data.length >= 0) {
-              // Синхронізуємо localStorage з БД
               localStorage.setItem(storageKey, JSON.stringify([...data].reverse()));
               setInvestments(data);
               if (data.length === 1) setExpandedIds(new Set([data[0].id]));
@@ -326,7 +324,6 @@ function InvestmentsSection({ address }: { address?: string }) {
           }
         } catch {}
       }
-      // Fallback: localStorage
       try {
         const data = JSON.parse(localStorage.getItem(storageKey) || "[]");
         const reversed = [...data].reverse();
@@ -347,11 +344,9 @@ function InvestmentsSection({ address }: { address?: string }) {
   };
 
   const removeInvestment = (id: string) => {
-    // Видаляємо з Supabase
     if (address) {
       fetch(`/api/investments?id=${id}&address=${address}`, { method: "DELETE" }).catch(() => {});
     }
-    // Видаляємо з localStorage
     try {
       const updated = JSON.parse(localStorage.getItem(storageKey) || "[]")
         .filter((inv: any) => inv.id !== id);
@@ -596,7 +591,6 @@ function TransactionsSection({ address }: { address?: string }) {
     load();
   }, [address]);
 
-  // Живий таймер — оновлюється кожну секунду
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
@@ -653,7 +647,6 @@ function TransactionsSection({ address }: { address?: string }) {
         <p className="text-slate-500 text-sm mt-1">Deposits and upcoming payouts</p>
       </div>
 
-      {/* ── Upcoming Payouts ── */}
       <div className="rounded-2xl border border-slate-700/50 bg-slate-900/60 backdrop-blur-xl overflow-hidden">
         <div className="px-5 md:px-6 py-4 border-b border-slate-700/40 flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
@@ -759,7 +752,6 @@ function TransactionsSection({ address }: { address?: string }) {
         </div>
       </div>
 
-      {/* ── Deposit History ── */}
       <div className="rounded-2xl border border-slate-700/50 bg-slate-900/60 backdrop-blur-xl overflow-hidden">
         <div className="px-5 md:px-6 py-4 border-b border-slate-700/40">
           <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">Deposit History</h3>
@@ -841,7 +833,8 @@ function SettingsSection({ address }: { address?: string }) {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function DashboardPage() {
-  const { address, isConnected } = useAccount();
+  // walletStatus: "connecting" | "reconnecting" | "connected" | "disconnected"
+  const { address, isConnected, status: walletStatus } = useAccount();
   const { data: session, status } = useSession();
   const isGoogleAuth = status === "authenticated";
   const isAuthorized = isConnected || isGoogleAuth;
@@ -883,7 +876,6 @@ export default function DashboardPage() {
     async function calcStats() {
       let investments: any[] = [];
 
-      // Спочатку API, потім localStorage як fallback
       if (address) {
         try {
           const res = await fetch(`/api/investments?address=${address}`);
@@ -932,8 +924,11 @@ export default function DashboardPage() {
   }, [address, prices.ETH, prices.BTC]);
 
   useEffect(() => {
+    // Wait for wagmi to finish reconnecting before redirecting.
+    // On page refresh, walletStatus is "reconnecting" for 1-2s.
+    if (walletStatus === "connecting" || walletStatus === "reconnecting") return;
     if (!isConnected && status !== "loading" && status !== "authenticated") router.push("/");
-  }, [isConnected, status, router]);
+  }, [isConnected, walletStatus, status, router]);
 
   useEffect(() => {
     if (!address || !isConnected) return;
