@@ -9,18 +9,9 @@ interface ChatMessage {
   created_at: string;
 }
 
-function getSessionId(): string {
-  try {
-    const key = "nx_chat_session";
-    let id = localStorage.getItem(key);
-    if (!id) {
-      id = `s_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-      localStorage.setItem(key, id);
-    }
-    return id;
-  } catch {
-    return `s_${Date.now()}`;
-  }
+// Нова сесія при кожному завантаженні сторінки — без збереження в localStorage
+function newSessionId(): string {
+  return `s_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
 export default function ChatWidget() {
@@ -28,10 +19,7 @@ export default function ChatWidget() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
-  const [sessionId] = useState<string>(() => {
-    if (typeof window !== "undefined") return getSessionId();
-    return "";
-  });
+  const [sessionId] = useState<string>(newSessionId);
   const [hasUnread, setHasUnread] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
