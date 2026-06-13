@@ -420,9 +420,9 @@ export default function InvestPage() {
   };
 
   const handleManualSent = () => {
-    setTxStatus("success");
-    setTxHash("manual-" + Date.now());
-  };
+  setTxStatus("success");
+  setTxHash("manual-" + Date.now());
+};
 
   const closeModal = () => {
     setShowConfirmModal(false);
