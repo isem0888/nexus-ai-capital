@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { useAccount } from "wagmi";
+import { useAccount, useBalance } from "wagmi";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -139,13 +139,19 @@ function OverviewSection({ stats, onWithdraw, address, prices }: any) {
     return () => clearInterval(interval);
   }, [prices]);
 
+  // Формуємо підпис для картки "Total Balance"
+  const walletEthNum = parseFloat(stats.walletEth || "0");
+  const totalBalanceSub = walletEthNum > 0
+    ? `${walletEthNum.toFixed(6)} ETH in wallet`
+    : "All assets combined";
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         <StatCard
           label="Total Balance"
           value={`$${stats.totalBalance.toLocaleString()}`}
-          sub="All assets combined"
+          sub={totalBalanceSub}
           accent="bg-blue-500/15"
           icon={<svg className="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" /></svg>}
         />
@@ -540,7 +546,6 @@ function TransactionsSection({ address }: { address?: string }) {
     loadInvestments();
     loadWithdrawals();
 
-    // Авто-оновлення статусів виведень кожні 15 секунд
     const interval = setInterval(loadWithdrawals, 15000);
     return () => clearInterval(interval);
   }, [address]);
@@ -587,7 +592,7 @@ function TransactionsSection({ address }: { address?: string }) {
               <svg className="w-8 h-8 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
             </div>
             <div className="text-lg font-semibold text-slate-300">No transactions yet</div>
-            <div className="text-slate-600 mt-1 text-sm max-w-xs mx-auto">Once you make your first investment, all on-chain activity will appear here.</div>
+            <div className="text-slate-600 mt-1 text-sm max-w-xs mx-anchor max-w-xs mx-auto">Once you make your first investment, all on-chain activity will appear here.</div>
           </div>
         </div>
       </div>
@@ -711,7 +716,6 @@ function TransactionsSection({ address }: { address?: string }) {
           <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">Transaction History</h3>
         </div>
         <div className="divide-y divide-slate-700/20">
-          {/* Депозити */}
           {investments.map((inv: any) => {
             const icon = ASSET_ICONS[inv.asset] || { icon: "?", color: "text-slate-400", bg: "bg-slate-500/20" };
             return (
@@ -738,7 +742,6 @@ function TransactionsSection({ address }: { address?: string }) {
             );
           })}
 
-          {/* Виведення */}
           {withdrawals.map((w: any) => {
             const icon = ASSET_ICONS[w.asset] || { icon: "?", color: "text-slate-400", bg: "bg-slate-500/20" };
             const statusColor = w.status === "completed"
@@ -824,27 +827,38 @@ function SettingsSection({ address }: { address?: string }) {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function DashboardPage() {
-  // walletStatus: "connecting" | "reconnecting" | "connected" | "disconnected"
   const { address, isConnected, status: walletStatus } = useAccount();
   const { data: session, status } = useSession();
   const isGoogleAuth = status === "authenticated";
   const isAuthorized = isConnected || isGoogleAuth;
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("overview");
+
+  // ── Реальний баланс ETH з гаманця ──────────────────────────────────────────
+  const { data: ethBalance } = useBalance({
+    address,
+    query: {
+      enabled: !!address && isConnected,
+      refetchInterval: 15_000, // оновлювати кожні 15 сек
+    },
+  });
+
   const [stats, setStats] = useState({
     totalBalance: 0,
     activeInvestments: 0,
     totalEarned: 0,
     pendingWithdrawals: 0,
+    walletEth: "0",   // реальний ETH з гаманця (formatted)
+    walletUsd: 0,     // ETH у USD
   });
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // Авто-оновлення stat карточок кожні 30 секунд (щоб Pending Withdrawals оновлювався після TG кнопки)
   useEffect(() => {
     const interval = setInterval(() => setRefreshKey(k => k + 1), 30000);
     return () => clearInterval(interval);
   }, []);
+
   const [prices, setPrices] = useState({ BTC: 0, ETH: 0, USDT: 1 });
 
   useEffect(() => {
@@ -901,16 +915,22 @@ export default function DashboardPage() {
         NEAR: 2.1,
       };
 
-      let totalBalance = 0;
+      let platformBalance = 0;
       let totalEarned = 0;
 
       investments.forEach((inv: any) => {
         const p = priceMap[inv.asset] || 1;
-        totalBalance += (inv.amount || 0) * p;
-        totalEarned  += (inv.profit  || 0) * p;
+        platformBalance += (inv.amount || 0) * p;
+        totalEarned    += (inv.profit  || 0) * p;
       });
 
-      // Fetch pending withdrawals and calculate USD sum
+      // ── Реальний баланс ETH з гаманця ──────────────────────────────────
+      const walletEthAmount = ethBalance ? parseFloat(ethBalance.formatted) : 0;
+      const walletUsd = walletEthAmount * (prices.ETH || 0);
+      // Загальний баланс = платформа + реальний гаманець
+      const totalBalance = platformBalance + walletUsd;
+
+      // Pending withdrawals
       let pendingWithdrawalsUSD = 0;
       if (address) {
         try {
@@ -934,15 +954,15 @@ export default function DashboardPage() {
         activeInvestments:  investments.length,
         totalEarned:        Math.round(totalEarned),
         pendingWithdrawals: Math.round(pendingWithdrawalsUSD),
+        walletEth:          ethBalance?.formatted ?? "0",
+        walletUsd:          Math.round(walletUsd),
       });
     }
 
     calcStats();
-  }, [address, prices.ETH, prices.BTC, refreshKey]);
+  }, [address, prices.ETH, prices.BTC, refreshKey, ethBalance?.value?.toString()]);
 
   useEffect(() => {
-    // Wait for wagmi to finish reconnecting before redirecting.
-    // On page refresh, walletStatus is "reconnecting" for 1-2s.
     if (walletStatus === "connecting" || walletStatus === "reconnecting") return;
     if (!isConnected && status !== "loading" && status !== "authenticated") router.push("/");
   }, [isConnected, walletStatus, status, router]);
@@ -1027,7 +1047,6 @@ export default function DashboardPage() {
         </div>
 
         <div className="flex items-center justify-between gap-2 mb-6">
-          {/* Tabs */}
           <div className="flex gap-1 overflow-x-auto pb-1 -mx-4 px-4 md:mx-0 md:px-0 flex-shrink-0">
             {tabs.map((tab) => (
               <button
@@ -1044,7 +1063,6 @@ export default function DashboardPage() {
             ))}
           </div>
 
-          {/* Persistent action buttons */}
           <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
             <Link
               href="/invest"
