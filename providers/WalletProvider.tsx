@@ -47,35 +47,10 @@ function clearWagmiStorage() {
   toDelete.forEach((k) => localStorage.removeItem(k));
 }
 
-const HIDE_KEY = "wallet_hide_time";
-const SESSION_KEY = "wallet_session";
-const TIMEOUT_MS = 60_000; // 1 хвилина
-
-// ── Логіка ДО ініціалізації wagmi (рівень модуля) ────────────────────────────
+// ── Завжди очищаємо при завантаженні сторінки ────────────────────────────────
+// Гаманець ніколи не зберігається між сесіями — підключати заново щоразу
 if (typeof window !== "undefined") {
-  // sessionStorage зберігається при рефреші, але очищується при закритті вкладки
-  const isRefresh = sessionStorage.getItem(SESSION_KEY) !== null;
-
-  if (isRefresh) {
-    // Рефреш → завжди відключаємо (фіксує проблему 3 гаманців)
-    clearWagmiStorage();
-    localStorage.removeItem(HIDE_KEY);
-  } else {
-    // Нова сесія: перший візит або повернення після закриття вкладки
-    const raw = localStorage.getItem(HIDE_KEY);
-    if (raw && Date.now() - Number(raw) < TIMEOUT_MS) {
-      // Повернулись менше ніж за 5 хвилин → дозволяємо переконектитись, але тільки 1
-      localStorage.removeItem(HIDE_KEY);
-      limitToOneConnection();
-    } else {
-      // Перший візит або > 5 хвилин → відключаємо
-      clearWagmiStorage();
-      if (raw) localStorage.removeItem(HIDE_KEY);
-    }
-  }
-
-  // Позначаємо сесію (persists через рефреш, але НЕ через закриття вкладки)
-  sessionStorage.setItem(SESSION_KEY, "1");
+  clearWagmiStorage();
 }
 
 // ── wagmi/RainbowKit config ───────────────────────────────────────────────────
