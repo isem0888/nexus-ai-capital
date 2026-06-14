@@ -7,35 +7,66 @@ import { mainnet, base } from "wagmi/chains";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import DisconnectOnLoad from "../app/components/DisconnectOnLoad";
 
+// ── Допоміжна функція очищення wagmi-ключів ──────────────────────────────────
+function clearWagmiStorage() {
+  if (typeof window === "undefined") return;
+  const toDelete: string[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (!k) continue;
+    if (
+      k.startsWith("wagmi") ||
+      k.startsWith("wc@") ||
+      k.startsWith("WCM_") ||
+      k.startsWith("walletconnect") ||
+      k.startsWith("WALLETCONNECT") ||
+      k.startsWith("rk-")
+    ) {
+      toDelete.push(k);
+    }
+  }
+  toDelete.forEach((k) => localStorage.removeItem(k));
+}
+
 // ── Очищення ДО ініціалізації wagmi (рівень модуля) ──────────────────────────
-// Запускається при кожному ПОВНОМУ завантаженні сторінки (не при bfcache-відновленні).
-// При bfcache-відновленні відключення відбувається в DisconnectOnLoad.tsx (onShow/pageshow).
 if (typeof window !== "undefined") {
   const HIDE_KEY = "wallet_hide_time";
-  const raw = localStorage.getItem(HIDE_KEY);
 
+  // ── Перевірка 1: якщо минула 1 хвилина після закриття ───────────────────
+  const raw = localStorage.getItem(HIDE_KEY);
   if (raw && Date.now() - Number(raw) >= 60_000) {
-    // Очищаємо ВСІ wagmi-ключі — wagmi v2 перевіряє `wagmi.injected.connected`
-    // для shimDisconnect, тому прибираємо все щоб prevent auto-reconnect
-    const toDelete: string[] = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i);
-      if (!k) continue;
+    clearWagmiStorage();
+    // НЕ видаляємо HIDE_KEY — DisconnectOnLoad викличе disconnect() для React-стану
+  }
+
+  // ── Перевірка 2: збережена адреса ≠ активній в MetaMask → скидаємо ──────
+  // Це виправляє авто-підключення до "старого" гаманця якщо в MetaMask
+  // зараз вибраний інший акаунт.
+  try {
+    const storedRaw = localStorage.getItem("wagmi.store");
+    if (storedRaw) {
+      const stored = JSON.parse(storedRaw);
+      const connections = stored?.state?.connections;
+      const currentConnId = connections?.current;
+      const storedAddr: string | undefined =
+        currentConnId
+          ? connections?.value?.[currentConnId]?.accounts?.[0]
+          : undefined;
+
+      // window.ethereum.selectedAddress — поточний активний акаунт MetaMask
+      const activeAddr: string | undefined =
+        (window as any).ethereum?.selectedAddress ?? undefined;
+
       if (
-        k.startsWith("wagmi") ||
-        k.startsWith("wc@") ||
-        k.startsWith("WCM_") ||
-        k.startsWith("walletconnect") ||
-        k.startsWith("WALLETCONNECT") ||
-        k.startsWith("rk-")
+        storedAddr &&
+        activeAddr &&
+        storedAddr.toLowerCase() !== activeAddr.toLowerCase()
       ) {
-        toDelete.push(k);
+        // Акаунти не збігаються → повністю очищуємо saved session
+        clearWagmiStorage();
       }
     }
-    toDelete.forEach((k) => localStorage.removeItem(k));
-    // НЕ видаляємо HIDE_KEY тут — DisconnectOnLoad перевірить його ще раз
-    // і викличе disconnect() для оновлення React-стану
-  }
+  } catch {}
 }
 
 // ── wagmi/RainbowKit config ───────────────────────────────────────────────────
