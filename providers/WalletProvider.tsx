@@ -1,23 +1,47 @@
 "use client";
 
-import DisconnectOnLoad from "../app/components/DisconnectOnLoad";
 import "@rainbow-me/rainbowkit/styles.css";
-
-import {
-  getDefaultConfig,
-  RainbowKitProvider,
-} from "@rainbow-me/rainbowkit";
-
+import { getDefaultConfig, RainbowKitProvider } from "@rainbow-me/rainbowkit";
 import { WagmiProvider } from "wagmi";
 import { mainnet, base } from "wagmi/chains";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import DisconnectOnLoad from "../app/components/DisconnectOnLoad";
 
+// ── Очищення storage ДО ініціалізації wagmi ───────────────────────────────
+// Запускається при завантаженні модуля (до будь-якого React рендеру)
+if (typeof window !== "undefined") {
+  const HIDE_KEY = "wallet_hide_time";
+  const raw = localStorage.getItem(HIDE_KEY);
+
+  if (raw && Date.now() - Number(raw) >= 60_000) {
+    // Пройшла 1 хвилина — видаляємо всі ключі гаманця до того як wagmi встигне підключитись
+    const toDelete: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (!k) continue;
+      if (
+        k.startsWith("wagmi") ||
+        k.startsWith("wc@") ||
+        k.startsWith("WCM_") ||
+        k.startsWith("walletconnect") ||
+        k.startsWith("rk-") ||
+        k.startsWith("WALLETCONNECT") ||
+        k === "-walletlink:https://www.walletlink.org:Addresses"
+      ) {
+        toDelete.push(k);
+      }
+    }
+    toDelete.forEach((k) => localStorage.removeItem(k));
+    localStorage.removeItem(HIDE_KEY);
+  }
+}
+
+// ── wagmi/RainbowKit конфіг (створюється ПІСЛЯ очищення вище) ─────────────
 const config = getDefaultConfig({
   appName: "Nexus AI Capital",
   projectId: "be3e828a71c51f172afad1ffa0a8e19b",
   chains: [mainnet, base],
   ssr: true,
-  storage: undefined, // не зберігати стан підключення
 });
 
 const queryClient = new QueryClient();
