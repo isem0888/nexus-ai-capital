@@ -28,45 +28,34 @@ function clearWagmiStorage() {
   toDelete.forEach((k) => localStorage.removeItem(k));
 }
 
-// ── Очищення ДО ініціалізації wagmi (рівень модуля) ──────────────────────────
-if (typeof window !== "undefined") {
-  const HIDE_KEY = "wallet_hide_time";
+const HIDE_KEY = "wallet_hide_time";
+const SESSION_KEY = "wallet_session";
+const TIMEOUT_MS = 5 * 60 * 1000; // 5 хвилин
 
-  // ── Перевірка 1: якщо минула 1 хвилина після закриття ───────────────────
-  const raw = localStorage.getItem(HIDE_KEY);
-  if (raw && Date.now() - Number(raw) >= 60_000) {
+// ── Логіка ДО ініціалізації wagmi (рівень модуля) ────────────────────────────
+if (typeof window !== "undefined") {
+  // sessionStorage зберігається при рефреші, але очищується при закритті вкладки
+  const isRefresh = sessionStorage.getItem(SESSION_KEY) !== null;
+
+  if (isRefresh) {
+    // Рефреш → завжди відключаємо (фіксує проблему 3 гаманців)
     clearWagmiStorage();
-    // НЕ видаляємо HIDE_KEY — DisconnectOnLoad викличе disconnect() для React-стану
+    localStorage.removeItem(HIDE_KEY);
+  } else {
+    // Нова сесія: перший візит або повернення після закриття вкладки
+    const raw = localStorage.getItem(HIDE_KEY);
+    if (raw && Date.now() - Number(raw) < TIMEOUT_MS) {
+      // Повернулись менше ніж за 5 хвилин → дозволяємо переконектитись
+      localStorage.removeItem(HIDE_KEY);
+    } else {
+      // Перший візит або > 5 хвилин → відключаємо
+      clearWagmiStorage();
+      if (raw) localStorage.removeItem(HIDE_KEY);
+    }
   }
 
-  // ── Перевірка 2: збережена адреса ≠ активній в MetaMask → скидаємо ──────
-  // Це виправляє авто-підключення до "старого" гаманця якщо в MetaMask
-  // зараз вибраний інший акаунт.
-  try {
-    const storedRaw = localStorage.getItem("wagmi.store");
-    if (storedRaw) {
-      const stored = JSON.parse(storedRaw);
-      const connections = stored?.state?.connections;
-      const currentConnId = connections?.current;
-      const storedAddr: string | undefined =
-        currentConnId
-          ? connections?.value?.[currentConnId]?.accounts?.[0]
-          : undefined;
-
-      // window.ethereum.selectedAddress — поточний активний акаунт MetaMask
-      const activeAddr: string | undefined =
-        (window as any).ethereum?.selectedAddress ?? undefined;
-
-      if (
-        storedAddr &&
-        activeAddr &&
-        storedAddr.toLowerCase() !== activeAddr.toLowerCase()
-      ) {
-        // Акаунти не збігаються → повністю очищуємо saved session
-        clearWagmiStorage();
-      }
-    }
-  } catch {}
+  // Позначаємо сесію (persists через рефреш, але НЕ через закриття вкладки)
+  sessionStorage.setItem(SESSION_KEY, "1");
 }
 
 // ── wagmi/RainbowKit config ───────────────────────────────────────────────────

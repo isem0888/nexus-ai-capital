@@ -4,10 +4,9 @@ import { useEffect } from "react";
 import { useDisconnect } from "wagmi";
 
 const HIDE_KEY = "wallet_hide_time";
-const TIMEOUT_MS = 60_000;
+const TIMEOUT_MS = 5 * 60 * 1000; // 5 хвилин
 
-function forceDisconnectStorage() {
-  // Clear ALL wagmi keys (wagmi v2 checks wagmi.injected.connected for shimDisconnect)
+function clearWagmiStorage() {
   const toDelete: string[] = [];
   for (let i = 0; i < localStorage.length; i++) {
     const k = localStorage.key(i);
@@ -31,32 +30,21 @@ export default function DisconnectOnLoad() {
   const { disconnect } = useDisconnect();
 
   useEffect(() => {
-    // ─── Перевірка при монтуванні (повне перезавантаження) ───────────────
-    // Модульний код WalletProvider вже очистив wagmi.store,
-    // але disconnect() ще не викликали — робимо це тут
-    {
-      const raw = localStorage.getItem(HIDE_KEY);
-      if (raw && Date.now() - Number(raw) >= TIMEOUT_MS) {
-        disconnect();
-        forceDisconnectStorage();
-      }
-    }
+    // Логіка початкового завантаження перенесена у WalletProvider (module level)
+    // Тут лише обробляємо visibility events (перемикання вкладок, мобільний фон)
 
-    // ─── Функції обробників подій ────────────────────────────────────────
     function onHide() {
-      // Зберігаємо час коли сторінка стала прихованою
-      // НЕ використовуємо setTimeout — він не спрацьовує в bfcache!
       localStorage.setItem(HIDE_KEY, String(Date.now()));
     }
 
     function onShow() {
       const raw = localStorage.getItem(HIDE_KEY);
       if (raw && Date.now() - Number(raw) >= TIMEOUT_MS) {
-        // Пройшло >= 1 хвилини поки сторінка була прихована/закрита
+        // Пройшло >= 5 хвилин → відключаємо
         disconnect();
-        forceDisconnectStorage();
+        clearWagmiStorage();
       } else {
-        // Повернулись раніше 1 хвилини — просто прибираємо мітку
+        // Повернулись раніше 5 хвилин → прибираємо мітку
         localStorage.removeItem(HIDE_KEY);
       }
     }
@@ -69,8 +57,6 @@ export default function DisconnectOnLoad() {
       }
     }
 
-    // pageshow спрацьовує при відновленні з bfcache (e.persisted === true)
-    // visibilitychange ловить переключення вкладок і сховання сторінки
     document.addEventListener("visibilitychange", onVisibility);
     window.addEventListener("pagehide", onHide);
     window.addEventListener("pageshow", onShow);
