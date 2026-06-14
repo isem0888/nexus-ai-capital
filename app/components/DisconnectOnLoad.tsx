@@ -1,53 +1,53 @@
 "use client";
 
 import { useEffect } from "react";
-import { useAccount, useDisconnect, useReconnect, useConfig } from "wagmi";
+import { useDisconnect } from "wagmi";
 
-const TIMEOUT = 30_000; // 30 секунд
-const KEY = "lastActive";
+const HIDE_KEY = "wallet_hide_time";
+const TIMEOUT_MS = 60_000; // 1 хвилина
 
 export default function DisconnectOnLoad() {
-  const { reconnect } = useReconnect();
   const { disconnect } = useDisconnect();
-  const config = useConfig();
 
-  // 1) При загрузке: решаем — реконнект или дисконнект
   useEffect(() => {
-    const last = Number(localStorage.getItem(KEY) || 0);
-    const elapsed = Date.now() - last;
-    console.log("[wallet] last:", last, "elapsed:", elapsed);
-
-    if (last && elapsed <= TIMEOUT) {
-      const t = setTimeout(() => {
-        console.log("[wallet] reconnecting...");
-        reconnect({ connectors: config.connectors });
-      }, 300);
-      return () => clearTimeout(t);
-    } else {
-      console.log("[wallet] timeout → disconnect");
-      localStorage.removeItem(KEY);
-      disconnect();
+    // ── При завантаженні: перевіряємо чи пройшла 1 хв ─────────────────
+    const raw = localStorage.getItem(HIDE_KEY);
+    if (raw) {
+      const elapsed = Date.now() - Number(raw);
+      if (elapsed >= TIMEOUT_MS) {
+        disconnect();
+      }
+      localStorage.removeItem(HIDE_KEY);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
-  // 2) Пока вкладка открыта — постоянно обновляем метку (БЕЗ привязки к isConnected)
-  useEffect(() => {
-    const beat = () => localStorage.setItem(KEY, Date.now().toString());
-    beat();
+    // ── При приховуванні сторінки: зберігаємо час ──────────────────────
+    function onHide() {
+      localStorage.setItem(HIDE_KEY, String(Date.now()));
+    }
 
-    const id = setInterval(beat, 3_000);
-    window.addEventListener("pagehide", beat);
-    window.addEventListener("beforeunload", beat);
-    document.addEventListener("visibilitychange", beat);
+    // ── При поверненні на сторінку: скасовуємо таймер ─────────────────
+    function onShow() {
+      localStorage.removeItem(HIDE_KEY);
+    }
+
+    function onVisibility() {
+      if (document.visibilityState === "hidden") {
+        onHide();
+      } else {
+        onShow();
+      }
+    }
+
+    // visibilitychange — працює і на мобільних
+    document.addEventListener("visibilitychange", onVisibility);
+    // pagehide — для Safari/iOS
+    window.addEventListener("pagehide", onHide);
 
     return () => {
-      clearInterval(id);
-      window.removeEventListener("pagehide", beat);
-      window.removeEventListener("beforeunload", beat);
-      document.removeEventListener("visibilitychange", beat);
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("pagehide", onHide);
     };
-  }, []);
+  }, [disconnect]);
 
   return null;
 }
