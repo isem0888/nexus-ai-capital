@@ -838,36 +838,35 @@ export default function DashboardPage() {
   const [walletEthBalance, setWalletEthBalance] = useState(0);
 
   useEffect(() => {
-    if (!address) { setWalletEthBalance(0); return; }
+    if (!address || typeof window === "undefined") { setWalletEthBalance(0); return; }
 
     async function fetchEthBalance() {
-      // Використовуємо публічну ноду — не потрібен API ключ
-      const rpcs = [
-        "https://eth.llamarpc.com",
-        "https://cloudflare-eth.com",
-        "https://rpc.ankr.com/eth",
-      ];
-      for (const rpc of rpcs) {
-        try {
-          const res = await fetch(rpc, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              jsonrpc: "2.0",
-              method: "eth_getBalance",
-              params: [address, "latest"],
-              id: 1,
-            }),
+      try {
+        // Спосіб 1: через MetaMask (window.ethereum) — найшвидший, без CORS
+        const eth = (window as any).ethereum;
+        if (eth?.request) {
+          const hex: string = await eth.request({
+            method: "eth_getBalance",
+            params: [address, "latest"],
           });
-          const { result } = await res.json();
-          if (result) {
-            // result — hex рядок в wei, конвертуємо в ETH
-            const balanceEth = Number(BigInt(result)) / 1e18;
-            setWalletEthBalance(balanceEth);
-            return; // успіх — виходимо
+          if (hex) {
+            setWalletEthBalance(Number(BigInt(hex)) / 1e18);
+            return;
           }
-        } catch {}
-      }
+        }
+      } catch {}
+
+      // Спосіб 2: Next.js API route (проксі, без CORS)
+      try {
+        const res = await fetch(`/api/eth-balance?address=${address}`);
+        if (res.ok) {
+          const { balance } = await res.json();
+          if (typeof balance === "number") {
+            setWalletEthBalance(balance);
+            return;
+          }
+        }
+      } catch {}
     }
 
     fetchEthBalance();
