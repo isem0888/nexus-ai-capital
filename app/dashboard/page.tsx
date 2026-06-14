@@ -150,7 +150,7 @@ function OverviewSection({ stats, onWithdraw, address, prices }: any) {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         <StatCard
           label="Total Balance"
-          value={`$${stats.totalBalance < 1 && stats.totalBalance > 0 ? stats.totalBalance.toFixed(2) : Math.round(stats.totalBalance).toLocaleString()}`}
+          value={`$${stats.totalBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
           sub={totalBalanceSub}
           accent="bg-blue-500/15"
           icon={<svg className="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" /></svg>}
@@ -164,14 +164,14 @@ function OverviewSection({ stats, onWithdraw, address, prices }: any) {
         />
         <StatCard
           label="Total Earned"
-          value={`$${stats.totalEarned.toLocaleString()}`}
+          value={`$${stats.totalEarned.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
           sub="Lifetime returns"
           accent="bg-green-500/15"
           icon={<svg className="w-5 h-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
         />
         <StatCard
           label="Pending Withdrawals"
-          value={`$${stats.pendingWithdrawals.toLocaleString()}`}
+          value={`$${stats.pendingWithdrawals.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
           sub="Processing"
           accent="bg-amber-500/15"
           icon={<svg className="w-5 h-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
