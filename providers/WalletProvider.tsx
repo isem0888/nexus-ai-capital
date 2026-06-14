@@ -49,7 +49,7 @@ function clearWagmiStorage() {
 
 const HIDE_KEY = "wallet_hide_time";
 const SESSION_KEY = "wallet_session";
-const TIMEOUT_MS = 5 * 60 * 1000; // 5 хвилин
+const TIMEOUT_MS = 60_000; // 1 хвилина
 
 // ── Логіка ДО ініціалізації wagmi (рівень модуля) ────────────────────────────
 if (typeof window !== "undefined") {

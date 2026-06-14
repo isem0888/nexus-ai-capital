@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useDisconnect } from "wagmi";
 
 const HIDE_KEY = "wallet_hide_time";
-const TIMEOUT_MS = 5 * 60 * 1000; // 5 хвилин
+const TIMEOUT_MS = 60_000; // 1 хвилина
 
 function clearWagmiStorage() {
   const toDelete: string[] = [];
