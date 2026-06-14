@@ -48,7 +48,6 @@ export default function InvestPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [showFlexTooltip, setShowFlexTooltip] = useState(false);
 
-  // Закриваємо тултіп Flexible при кліку поза ним
   useEffect(() => {
     if (!showFlexTooltip) return;
     const handler = () => setShowFlexTooltip(false);
@@ -56,7 +55,6 @@ export default function InvestPage() {
     return () => document.removeEventListener("click", handler);
   }, [showFlexTooltip]);
 
-  // TVL — детерміновано по часу, однаково у всіх користувачів (оновлюється кожні 6 годин)
   function getGlobalTVL(): number {
     const slot = Math.floor(Date.now() / (6 * 3600000));
     return 300 + ((slot * 1103515245 + 12345) >>> 0) % 111;
@@ -68,7 +66,7 @@ export default function InvestPage() {
     ETH:  [7.2,  9.5],
     BTC:  [4.1,  6.5],
     USDT: [8.35, 10.5],
-    SOL:  [8.1,  10.0],
+    SOL:  [8.1,  10.5],
     XRP:  [5.8,  7.8],
     BNB:  [7.3,  9.0],
     LINK: [8.4,  11.0],
@@ -91,7 +89,6 @@ export default function InvestPage() {
     return r;
   };
 
-  // Flexible APR — зберігається в localStorage, крок ±1.25% кожні 12 годин
   const [flexApr, setFlexApr] = useState<Record<string, number>>(() => {
     if (typeof window === "undefined") return initFlexApr();
     try {
@@ -106,9 +103,7 @@ export default function InvestPage() {
   });
 
   useEffect(() => {
-    // TVL оновлюється кожні 6 годин синхронно для всіх
     const tvlInterval = setInterval(() => setTvl(getGlobalTVL()), 6 * 3600000);
-
     const aprInterval = setInterval(() => {
       setFlexApr(prev => {
         const next = stepFlexApr(prev);
@@ -116,7 +111,6 @@ export default function InvestPage() {
         return next;
       });
     }, 12 * 3600000);
-
     return () => { clearInterval(tvlInterval); clearInterval(aprInterval); };
   }, []);
 
@@ -179,12 +173,15 @@ export default function InvestPage() {
   const { sendTransaction, isPending: isTxPending } = useSendTransaction();
   const { writeContract, isPending: isContractPending } = useWriteContract();
 
+  // ── ПЛАНИ (оновлено) ─────────────────────────────────────────────────────────
+  // ETH: знижено до рівня другого скріншота
+  // SOL: трохи вище за ETH (більш вигідний токен)
   const assetPlans: Record<string, { name: string; apr: number; lock: string; popular?: boolean }[]> = {
     ETH: [
       { name: "Flexible", apr: +flexApr.ETH, lock: "No lock period" },
-      { name: "30 Days",  apr: 11.9, lock: "30 days lock" },
-      { name: "90 Days",  apr: 15.6, lock: "90 days lock", popular: true },
-      { name: "180 Days", apr: 17.1, lock: "180 days lock" },
+      { name: "30 Days",  apr: 10.5, lock: "30 days lock" },
+      { name: "90 Days",  apr: 13.8, lock: "90 days lock", popular: true },
+      { name: "180 Days", apr: 15.6, lock: "180 days lock" },
     ],
     BTC: [
       { name: "Flexible", apr: +flexApr.BTC, lock: "No lock period" },
@@ -200,9 +197,9 @@ export default function InvestPage() {
     ],
     SOL: [
       { name: "Flexible", apr: +flexApr.SOL, lock: "No lock period" },
-      { name: "30 Days",  apr: 10.5, lock: "30 days lock" },
-      { name: "90 Days",  apr: 13.8, lock: "90 days lock", popular: true },
-      { name: "180 Days", apr: 15.6, lock: "180 days lock" },
+      { name: "30 Days",  apr: 11.5, lock: "30 days lock" },
+      { name: "90 Days",  apr: 14.8, lock: "90 days lock", popular: true },
+      { name: "180 Days", apr: 16.8, lock: "180 days lock" },
     ],
     XRP: [
       { name: "Flexible", apr: +flexApr.XRP, lock: "No lock period" },
@@ -332,7 +329,6 @@ export default function InvestPage() {
 
   const selectedPlan = assetPlans[asset].find((p) => p.name === plan) || assetPlans[asset][0];
 
-  // Telegram — нотифікація при успішній інвестиції (localStorage dedup)
   const investmentSavedRef = useRef<boolean>(false);
   useEffect(() => {
     if (txStatus === "success" && !investmentSavedRef.current) {
@@ -355,17 +351,9 @@ export default function InvestPage() {
       const invId = Date.now().toString();
       const storageKey = address ? `nx_inv_${address}` : "nx_inv_guest";
       const investment = {
-        id: invId,
-        asset,
-        plan,
-        apr: selectedPlan.apr,
-        amount: amountNum,
-        lockDays,
-        investedAt: now.toISOString(),
-        settlementAt: settlementDate,
-        profit: profitAmount,
-        total: +(amountNum + profitAmount).toFixed(6),
-        txHash: txHash || "",
+        id: invId, asset, plan, apr: selectedPlan.apr, amount: amountNum, lockDays,
+        investedAt: now.toISOString(), settlementAt: settlementDate,
+        profit: profitAmount, total: +(amountNum + profitAmount).toFixed(6), txHash: txHash || "",
       };
       try {
         const existing = JSON.parse(localStorage.getItem(storageKey) || "[]");
@@ -373,14 +361,12 @@ export default function InvestPage() {
         localStorage.setItem(storageKey, JSON.stringify(existing));
       } catch {}
 
-      // Зберігаємо в Supabase через API route
       fetch("/api/investments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...investment, address }),
       }).catch(() => {});
 
-      // Dedup TG нотифікації по invId
       const notifyKey = `nx_inv_notify_${invId}`;
       if (!localStorage.getItem(notifyKey)) {
         localStorage.setItem(notifyKey, "1");
@@ -408,9 +394,7 @@ export default function InvestPage() {
       await navigator.clipboard.writeText(depositAddresses[asset]);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error("Failed to copy:", err);
-    }
+    } catch (err) { console.error("Failed to copy:", err); }
   };
 
   const handleStartInvest = () => {
@@ -472,8 +456,7 @@ export default function InvestPage() {
     <main
       className="relative min-h-screen overflow-hidden text-white"
       style={{
-        backgroundImage:
-          "linear-gradient(rgba(2,6,23,0.25), rgba(2,6,23,0.35)), url('/images/ai-network-bg.jpg')",
+        backgroundImage: "linear-gradient(rgba(2,6,23,0.25), rgba(2,6,23,0.35)), url('/images/ai-network-bg.jpg')",
         backgroundSize: "cover",
         backgroundPosition: "center",
         backgroundAttachment: "fixed",
@@ -614,9 +597,7 @@ export default function InvestPage() {
               {assetPlans[asset].map((p) => {
                 const isActive = plan === p.name;
                 const flexAprVal = assetPlans[asset][0].apr;
-                const bonusPct = p.name !== "Flexible"
-                  ? +(p.apr - flexAprVal).toFixed(2)
-                  : null;
+                const bonusPct = p.name !== "Flexible" ? +(p.apr - flexAprVal).toFixed(2) : null;
 
                 const taglines: Record<string, string> = {
                   "Flexible":  "Withdraw anytime, no lock",
@@ -624,7 +605,6 @@ export default function InvestPage() {
                   "90 Days":   "Best APR per day locked",
                   "180 Days":  "Maximum annual returns",
                 };
-
                 const accentBorder: Record<string, string> = {
                   "Flexible":  "border-slate-600/60",
                   "30 Days":   "border-blue-500/30",
@@ -652,10 +632,7 @@ export default function InvestPage() {
                 return (
                   <button
                     key={p.name}
-                    onClick={() => {
-                      setPlan(p.name);
-                      sessionStorage.setItem("invest_plan", p.name);
-                    }}
+                    onClick={() => { setPlan(p.name); sessionStorage.setItem("invest_plan", p.name); }}
                     className={`relative p-5 rounded-xl border-2 text-left transition-all ${
                       isActive
                         ? p.name === "90 Days"
@@ -687,9 +664,7 @@ export default function InvestPage() {
                                     ? "border-white/50 text-white/70 hover:bg-white/20"
                                     : "border-slate-500 text-slate-400 hover:border-slate-300 hover:text-slate-200"
                                 }`}
-                              >
-                                ?
-                              </button>
+                              >?</button>
                               {showFlexTooltip && (
                                 <div
                                   className="absolute left-0 top-6 z-[9999] w-64 rounded-xl border border-slate-600/80 bg-slate-800 shadow-2xl p-4 text-left"
