@@ -7,7 +7,26 @@ import { mainnet, base } from "wagmi/chains";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import DisconnectOnLoad from "../app/components/DisconnectOnLoad";
 
-// ── Допоміжна функція очищення wagmi-ключів ──────────────────────────────────
+// ── Залишає тільки 1 підключення у wagmi.store ───────────────────────────────
+function limitToOneConnection() {
+  try {
+    const raw = localStorage.getItem("wagmi.store");
+    if (!raw) return;
+    const store = JSON.parse(raw);
+    const connections = store?.state?.connections;
+    if (!connections?.value) return;
+    const keys = Object.keys(connections.value);
+    if (keys.length <= 1) return;
+    const keepKey = connections.current || keys[0];
+    store.state.connections = {
+      current: keepKey,
+      value: { [keepKey]: connections.value[keepKey] },
+    };
+    localStorage.setItem("wagmi.store", JSON.stringify(store));
+  } catch {}
+}
+
+// ── Очищення wagmi ключів ─────────────────────────────────────────────────────
 function clearWagmiStorage() {
   if (typeof window === "undefined") return;
   const toDelete: string[] = [];
@@ -45,8 +64,9 @@ if (typeof window !== "undefined") {
     // Нова сесія: перший візит або повернення після закриття вкладки
     const raw = localStorage.getItem(HIDE_KEY);
     if (raw && Date.now() - Number(raw) < TIMEOUT_MS) {
-      // Повернулись менше ніж за 5 хвилин → дозволяємо переконектитись
+      // Повернулись менше ніж за 5 хвилин → дозволяємо переконектитись, але тільки 1
       localStorage.removeItem(HIDE_KEY);
+      limitToOneConnection();
     } else {
       // Перший візит або > 5 хвилин → відключаємо
       clearWagmiStorage();
