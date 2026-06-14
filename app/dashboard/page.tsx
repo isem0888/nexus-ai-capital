@@ -142,7 +142,7 @@ function OverviewSection({ stats, onWithdraw, address, prices }: any) {
   // Формуємо підпис для картки "Total Balance"
   const walletEthNum = parseFloat(stats.walletEth || "0");
   const totalBalanceSub = walletEthNum > 0
-    ? `${walletEthNum.toFixed(6)} ETH in wallet`
+    ? `${walletEthNum.toFixed(6)} ETH`
     : "All assets combined";
 
   return (
