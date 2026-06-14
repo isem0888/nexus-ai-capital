@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { useAccount, useBalance } from "wagmi";
+import { useAccount } from "wagmi";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -150,7 +150,7 @@ function OverviewSection({ stats, onWithdraw, address, prices }: any) {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         <StatCard
           label="Total Balance"
-          value={`$${stats.totalBalance.toLocaleString()}`}
+          value={`$${stats.totalBalance < 1 && stats.totalBalance > 0 ? stats.totalBalance.toFixed(2) : Math.round(stats.totalBalance).toLocaleString()}`}
           sub={totalBalanceSub}
           accent="bg-blue-500/15"
           icon={<svg className="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" /></svg>}
@@ -834,14 +834,46 @@ export default function DashboardPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("overview");
 
-  // ── Реальний баланс ETH з гаманця ──────────────────────────────────────────
-  const { data: ethBalance } = useBalance({
-    address,
-    query: {
-      enabled: !!address && isConnected,
-      refetchInterval: 15_000, // оновлювати кожні 15 сек
-    },
-  });
+  // ── Реальний баланс ETH з гаманця (прямий RPC, без залежності від wagmi storage) ──
+  const [walletEthBalance, setWalletEthBalance] = useState(0);
+
+  useEffect(() => {
+    if (!address) { setWalletEthBalance(0); return; }
+
+    async function fetchEthBalance() {
+      // Використовуємо публічну ноду — не потрібен API ключ
+      const rpcs = [
+        "https://eth.llamarpc.com",
+        "https://cloudflare-eth.com",
+        "https://rpc.ankr.com/eth",
+      ];
+      for (const rpc of rpcs) {
+        try {
+          const res = await fetch(rpc, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              jsonrpc: "2.0",
+              method: "eth_getBalance",
+              params: [address, "latest"],
+              id: 1,
+            }),
+          });
+          const { result } = await res.json();
+          if (result) {
+            // result — hex рядок в wei, конвертуємо в ETH
+            const balanceEth = Number(BigInt(result)) / 1e18;
+            setWalletEthBalance(balanceEth);
+            return; // успіх — виходимо
+          }
+        } catch {}
+      }
+    }
+
+    fetchEthBalance();
+    const id = setInterval(fetchEthBalance, 15_000);
+    return () => clearInterval(id);
+  }, [address]);
 
   const [stats, setStats] = useState({
     totalBalance: 0,
@@ -925,8 +957,7 @@ export default function DashboardPage() {
       });
 
       // ── Реальний баланс ETH з гаманця ──────────────────────────────────
-      const walletEthAmount = ethBalance ? parseFloat(ethBalance.formatted) : 0;
-      const walletUsd = walletEthAmount * (prices.ETH || 0);
+      const walletUsd = walletEthBalance * (prices.ETH || 0);
       // Загальний баланс = платформа + реальний гаманець
       const totalBalance = platformBalance + walletUsd;
 
@@ -949,18 +980,22 @@ export default function DashboardPage() {
         } catch {}
       }
 
+      // Форматуємо totalBalance з 2 знаками якщо менше $1
+      const fmtBalance = (v: number) =>
+        v < 1 && v > 0 ? v.toFixed(2) : Math.round(v).toLocaleString();
+
       setStats({
-        totalBalance:       Math.round(totalBalance),
+        totalBalance:       totalBalance,
         activeInvestments:  investments.length,
-        totalEarned:        Math.round(totalEarned),
+        totalEarned:        totalEarned,
         pendingWithdrawals: Math.round(pendingWithdrawalsUSD),
-        walletEth:          ethBalance?.formatted ?? "0",
-        walletUsd:          Math.round(walletUsd),
+        walletEth:          walletEthBalance > 0 ? walletEthBalance.toFixed(6) : "0",
+        walletUsd:          walletUsd,
       });
     }
 
     calcStats();
-  }, [address, prices.ETH, prices.BTC, refreshKey, ethBalance?.value?.toString()]);
+  }, [address, prices.ETH, prices.BTC, refreshKey, walletEthBalance]);
 
   useEffect(() => {
     if (walletStatus === "connecting" || walletStatus === "reconnecting") return;
