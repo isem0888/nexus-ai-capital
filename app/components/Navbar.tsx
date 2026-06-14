@@ -3,6 +3,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useAccount, useDisconnect } from "wagmi";
+import { useSession, signOut } from "next-auth/react";
 import ConnectWallet from "./ConnectWallet";
 
 export default function Navbar() {
@@ -12,6 +13,7 @@ export default function Navbar() {
   const [showWalletModal, setShowWalletModal] = useState(false);
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
+  const { data: session } = useSession();
 
   useEffect(() => {
     if (isConnected && showWalletModal) {
@@ -32,6 +34,11 @@ export default function Navbar() {
     if (pathname === "/dashboard") {
       router.push("/");
     }
+  };
+
+  const handleGoogleSignOut = async () => {
+    await fetch("/api/auth/logout", { method: "POST" });
+    await signOut({ callbackUrl: "/" });
   };
 
   return (
@@ -100,7 +107,55 @@ export default function Navbar() {
 
           {/* CTA buttons - Right side */}
           <div className="hidden lg:flex items-center gap-3">
-            {!isConnected ? (
+            {isConnected ? (
+              <>
+                <div className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-700">
+                  <div className="text-xs text-slate-500 mb-0.5">Connected</div>
+                  <div className="text-sm font-mono text-blue-400 font-semibold">
+                    {address?.slice(0, 6)}...{address?.slice(-4)}
+                  </div>
+                </div>
+                <Link
+                  href="/dashboard"
+                  className="px-5 py-2.5 text-sm font-semibold bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 text-white rounded-xl shadow-lg shadow-blue-500/25 transition"
+                >
+                  Dashboard
+                </Link>
+                <button
+                  onClick={handleDisconnect}
+                  className="px-5 py-2.5 text-sm font-medium text-rose-400 border border-rose-500/30 bg-rose-500/10 rounded-xl hover:bg-rose-500/20 transition"
+                >
+                  Disconnect
+                </button>
+              </>
+            ) : session ? (
+              <>
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700">
+                  {session.user?.image && (
+                    <img
+                      src={session.user.image}
+                      alt="avatar"
+                      className="w-6 h-6 rounded-full"
+                    />
+                  )}
+                  <span className="text-sm text-slate-300 max-w-[120px] truncate">
+                    {session.user?.name || session.user?.email}
+                  </span>
+                </div>
+                <Link
+                  href="/dashboard"
+                  className="px-5 py-2.5 text-sm font-semibold bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 text-white rounded-xl shadow-lg shadow-blue-500/25 transition"
+                >
+                  Dashboard
+                </Link>
+                <button
+                  onClick={handleGoogleSignOut}
+                  className="px-5 py-2.5 text-sm font-medium text-rose-400 border border-rose-500/30 bg-rose-500/10 rounded-xl hover:bg-rose-500/20 transition"
+                >
+                  Sign Out
+                </button>
+              </>
+            ) : (
               <>
                 <Link
                   href="/login"
@@ -109,29 +164,6 @@ export default function Navbar() {
                   Sign In
                 </Link>
                 <ConnectWallet />
-              </>
-            ) : (
-              <>
-                <div className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-700">
-                  <div className="text-xs text-slate-500 mb-0.5">Connected</div>
-                  <div className="text-sm font-mono text-blue-400 font-semibold">
-                    {address?.slice(0, 6)}...{address?.slice(-4)}
-                  </div>
-                </div>
-
-                <Link
-                  href="/dashboard"
-                  className="px-5 py-2.5 text-sm font-semibold bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 text-white rounded-xl shadow-lg shadow-blue-500/25 transition"
-                >
-                  Dashboard
-                </Link>
-
-                <button
-                  onClick={handleDisconnect}
-                  className="px-5 py-2.5 text-sm font-medium text-rose-400 border border-rose-500/30 bg-rose-500/10 rounded-xl hover:bg-rose-500/20 transition"
-                >
-                  Disconnect
-                </button>
               </>
             )}
           </div>
@@ -210,20 +242,7 @@ export default function Navbar() {
               </li>
 
               <li className="pt-3 border-t border-slate-800 mt-2">
-                {!isConnected ? (
-                  <div className="space-y-2">
-                    <Link
-                      href="/login"
-                      onClick={() => setMobileOpen(false)}
-                      className="block w-full text-center px-5 py-3 text-sm font-medium text-slate-300 border border-slate-700 bg-slate-900 rounded-xl hover:border-slate-500 hover:text-white transition"
-                    >
-                      Sign In
-                    </Link>
-                    <div className="bg-slate-900 border border-slate-700 rounded-xl p-3">
-                      <ConnectWallet />
-                    </div>
-                  </div>
-                ) : (
+                {isConnected ? (
                   <div className="space-y-2">
                     <div className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-700">
                       <div className="text-xs text-slate-500 mb-0.5">Connected Wallet</div>
@@ -247,6 +266,46 @@ export default function Navbar() {
                     >
                       Disconnect
                     </button>
+                  </div>
+                ) : session ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 border border-slate-700">
+                      {session.user?.image && (
+                        <img src={session.user.image} alt="avatar" className="w-6 h-6 rounded-full" />
+                      )}
+                      <span className="text-sm text-slate-300 truncate">
+                        {session.user?.name || session.user?.email}
+                      </span>
+                    </div>
+                    <Link
+                      href="/dashboard"
+                      onClick={() => setMobileOpen(false)}
+                      className="block w-full text-center px-5 py-3 text-sm font-semibold bg-gradient-to-r from-blue-600 to-violet-600 text-white rounded-xl shadow-lg shadow-blue-500/25"
+                    >
+                      Dashboard
+                    </Link>
+                    <button
+                      onClick={() => {
+                        handleGoogleSignOut();
+                        setMobileOpen(false);
+                      }}
+                      className="w-full px-5 py-3 text-sm font-medium text-rose-400 border border-rose-500/30 bg-rose-500/10 rounded-xl hover:bg-rose-500/20 transition"
+                    >
+                      Sign Out
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Link
+                      href="/login"
+                      onClick={() => setMobileOpen(false)}
+                      className="block w-full text-center px-5 py-3 text-sm font-medium text-slate-300 border border-slate-700 bg-slate-900 rounded-xl hover:border-slate-500 hover:text-white transition"
+                    >
+                      Sign In
+                    </Link>
+                    <div className="bg-slate-900 border border-slate-700 rounded-xl p-3">
+                      <ConnectWallet />
+                    </div>
                   </div>
                 )}
               </li>
