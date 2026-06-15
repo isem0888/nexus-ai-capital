@@ -527,7 +527,7 @@ function TransactionsSection({ address }: { address?: string }) {
           // Only show incoming ETH (to === address, value > 0, no error)
           const incoming = data.result.filter(
             (tx: any) =>
-              tx.to?.toLowerCase() === address.toLowerCase() &&
+              tx.to?.toLowerCase() === address?.toLowerCase() &&
               tx.value !== "0" &&
               tx.isError === "0"
           );
