@@ -510,9 +510,35 @@ function InvestmentsSection({ address }: { address?: string }) {
 function TransactionsSection({ address }: { address?: string }) {
   const [investments, setInvestments] = useState<any[]>([]);
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
+  const [onchainTxs, setOnchainTxs] = useState<any[]>([]);
   const [now, setNow] = useState(Date.now());
 
   const storageKey = address ? `nx_inv_${address}` : "nx_inv_guest";
+
+  // ── On-chain ETH transactions (incoming) ──────────────────────────────────
+  useEffect(() => {
+    if (!address) return;
+    async function fetchOnchain() {
+      try {
+        const res = await fetch(`/api/eth-transactions?address=${address}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.status === "1" && Array.isArray(data.result)) {
+          // Only show incoming ETH (to === address, value > 0, no error)
+          const incoming = data.result.filter(
+            (tx: any) =>
+              tx.to?.toLowerCase() === address.toLowerCase() &&
+              tx.value !== "0" &&
+              tx.isError === "0"
+          );
+          setOnchainTxs(incoming);
+        }
+      } catch {}
+    }
+    fetchOnchain();
+    const t = setInterval(fetchOnchain, 30_000);
+    return () => clearInterval(t);
+  }, [address]);
 
   useEffect(() => {
     async function loadInvestments() {
@@ -773,7 +799,42 @@ function TransactionsSection({ address }: { address?: string }) {
             );
           })}
 
-          {investments.length === 0 && withdrawals.length === 0 && (
+          {onchainTxs.map((tx: any) => {
+            const ethValue = (Number(BigInt(tx.value)) / 1e18).toFixed(6);
+            const date = new Date(Number(tx.timeStamp) * 1000).toLocaleDateString("uk-UA");
+            const shortFrom = tx.from ? `${tx.from.slice(0, 6)}...${tx.from.slice(-4)}` : "—";
+            return (
+              <div key={tx.hash} className="flex items-center gap-4 px-5 md:px-6 py-4">
+                <div className="w-9 h-9 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center flex-shrink-0">
+                  <svg className="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-semibold text-white text-sm">Received</span>
+                    <span className="text-xs font-bold text-blue-400">ETH</span>
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full border bg-blue-500/10 border-blue-500/20 text-blue-400">On-chain</span>
+                  </div>
+                  <div className="text-xs text-slate-600 mt-0.5">From: <span className="font-mono">{shortFrom}</span></div>
+                  <div className="text-xs text-slate-600">{date}</div>
+                </div>
+                <div className="text-right flex-shrink-0">
+                  <div className="font-bold text-blue-400">+{ethValue} ETH</div>
+                  <a
+                    href={`https://etherscan.io/tx/${tx.hash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-slate-600 hover:text-blue-400 transition"
+                  >
+                    View ↗
+                  </a>
+                </div>
+              </div>
+            );
+          })}
+
+          {investments.length === 0 && withdrawals.length === 0 && onchainTxs.length === 0 && (
             <div className="px-5 py-10 text-center text-slate-600 text-sm">No transactions yet</div>
           )}
         </div>
