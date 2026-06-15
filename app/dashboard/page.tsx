@@ -946,19 +946,16 @@ export default function DashboardPage() {
         NEAR: 2.1,
       };
 
-      let platformBalance = 0;
       let totalEarned = 0;
 
       investments.forEach((inv: any) => {
         const p = priceMap[inv.asset] || 1;
-        platformBalance += (inv.amount || 0) * p;
-        totalEarned    += (inv.profit  || 0) * p;
+        totalEarned += (inv.profit || 0) * p;
       });
 
-      // ── Реальний баланс ETH з гаманця ──────────────────────────────────
+      // ── Total Balance = реальний баланс MetaMask (ETH × поточна ціна) ──────
       const walletUsd = walletEthBalance * (prices.ETH || 0);
-      // Загальний баланс = платформа + реальний гаманець
-      const totalBalance = platformBalance + walletUsd;
+      const totalBalance = walletUsd;
 
       // Pending withdrawals
       let pendingWithdrawalsUSD = 0;
