@@ -166,7 +166,7 @@ export default function InvestPage() {
   }, []);
 
   const MIN_DEPOSITS: Record<string, number> = {
-    ETH: 0.1, BTC: 0.005, USDT: 500, SOL: 5, XRP: 500, BNB: 0.5, LINK: 50, NEAR: 200,
+    ETH: 0.01, BTC: 0.005, USDT: 500, SOL: 5, XRP: 500, BNB: 0.5, LINK: 50, NEAR: 200,
   };
   const getMinDeposit = (sym: string): number => MIN_DEPOSITS[sym] ?? 0;
 
@@ -228,7 +228,7 @@ export default function InvestPage() {
   };
 
   const assetConfig: Record<string, { minDeposit: number; symbol: string; network: string }> = {
-    ETH:  { minDeposit: 0.5,  symbol: "ETH",  network: "Ethereum" },
+    ETH:  { minDeposit: 0.01, symbol: "ETH",  network: "Ethereum" },
     BTC:  { minDeposit: 0.01, symbol: "BTC",  network: "Bitcoin" },
     USDT: { minDeposit: 1000, symbol: "USDT", network: "ERC20 (Ethereum)" },
     SOL:  { minDeposit: 5,    symbol: "SOL",  network: "Solana" },
@@ -276,7 +276,7 @@ export default function InvestPage() {
     },
     {
       question: "What is the minimum deposit?",
-      answer: "Minimum deposits vary by asset: ETH — 0.1 ETH, BTC — 0.005 BTC, USDT — 500 USDT, SOL — 5 SOL, XRP — 500 XRP, BNB — 0.5 BNB, LINK — 50 LINK, NEAR — 200 NEAR. These minimums ensure efficient allocation across our AI trading strategies.",
+      answer: "Minimum deposits vary by asset: ETH — 0.01 ETH, BTC — 0.005 BTC, USDT — 500 USDT, SOL — 5 SOL, XRP — 500 XRP, BNB — 0.5 BNB, LINK — 50 LINK, NEAR — 200 NEAR. These minimums ensure efficient allocation across our AI trading strategies.",
     },
     {
       question: "How are profits paid out?",
