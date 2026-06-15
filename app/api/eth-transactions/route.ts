@@ -5,7 +5,8 @@ export async function GET(req: NextRequest) {
   if (!address) return NextResponse.json({ error: "No address" }, { status: 400 });
 
   const apiKey = process.env.ETHERSCAN_API_KEY || "";
-  const url = `https://api.etherscan.io/api?module=account&action=txlist&address=${address}&sort=desc&page=1&offset=50${apiKey ? `&apikey=${apiKey}` : ""}`;
+  // Etherscan API V2 (V1 is deprecated)
+  const url = `https://api.etherscan.io/v2/api?chainid=1&module=account&action=txlist&address=${address}&sort=desc&page=1&offset=50${apiKey ? `&apikey=${apiKey}` : ""}`;
 
   try {
     const res = await fetch(url, { next: { revalidate: 30 } });
