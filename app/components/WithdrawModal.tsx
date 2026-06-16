@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { useSignMessage } from "wagmi";
 
 interface WithdrawModalProps {
   isOpen: boolean;
@@ -21,6 +22,7 @@ function fmtTimeLeft(ms: number): string {
 }
 
 export default function WithdrawModal({ isOpen, onClose, onSuccess, wallet, balance }: WithdrawModalProps) {
+  const { signMessageAsync } = useSignMessage();
   const [assetBalances, setAssetBalances] = useState<Record<string, number>>({});
   const [lockedPlans, setLockedPlans] = useState<Array<{ asset: string; plan: string; unlockAt: number }>>([]);
   const [asset, setAsset] = useState("");
@@ -102,10 +104,23 @@ export default function WithdrawModal({ isOpen, onClose, onSuccess, wallet, bala
 
     setIsProcessing(true);
     try {
+      // Sign to prove wallet ownership before withdrawal
+      const timestamp = Date.now();
+      let signature: string;
+      try {
+        signature = await signMessageAsync({
+          message: `nexus-ai:auth:${wallet.toLowerCase()}:${timestamp}`,
+        });
+      } catch {
+        setError("Signature required to verify wallet ownership");
+        setIsProcessing(false);
+        return;
+      }
+
       const res = await fetch("/api/withdraw", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ wallet, asset, amount: amountNum, destination_address: destinationAddress }),
+        body: JSON.stringify({ wallet, asset, amount: amountNum, destination_address: destinationAddress, signature, timestamp }),
       });
       const data = await res.json();
       if (data.success) {

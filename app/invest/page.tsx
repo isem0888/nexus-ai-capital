@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAccount, useDisconnect, useSendTransaction, useWriteContract } from "wagmi";
+import { useAccount, useDisconnect, useSendTransaction, useWriteContract, useSignMessage } from "wagmi";
 import { parseEther, parseUnits } from "viem";
 import ConnectWallet from "../components/ConnectWallet";
 import ChatWidget from "../components/ChatWidget";
@@ -172,6 +172,7 @@ export default function InvestPage() {
 
   const { sendTransaction, isPending: isTxPending } = useSendTransaction();
   const { writeContract, isPending: isContractPending } = useWriteContract();
+  const { signMessageAsync } = useSignMessage();
 
   // ── ПЛАНИ (оновлено) ─────────────────────────────────────────────────────────
   // ETH: знижено до рівня другого скріншота
@@ -361,11 +362,22 @@ export default function InvestPage() {
         localStorage.setItem(storageKey, JSON.stringify(existing));
       } catch {}
 
-      fetch("/api/investments", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...investment, address }),
-      }).catch(() => {});
+      // Sign before saving to API — proves wallet ownership
+      (async () => {
+        try {
+          const timestamp = Date.now();
+          const signature = await signMessageAsync({
+            message: `nexus-ai:auth:${address?.toLowerCase()}:${timestamp}`,
+          });
+          await fetch("/api/investments", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ...investment, address, signature, timestamp }),
+          });
+        } catch {
+          // Signing cancelled or failed — investment already recorded locally
+        }
+      })();
 
       const notifyKey = `nx_inv_notify_${invId}`;
       if (!localStorage.getItem(notifyKey)) {

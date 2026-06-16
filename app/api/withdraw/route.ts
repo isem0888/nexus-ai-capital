@@ -1,13 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
+import { verifyWalletSignature, checkRateLimit } from "@/lib/verifySignature";
+
+function getIp(req: NextRequest): string {
+  return (
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    req.headers.get("x-real-ip") ||
+    "unknown"
+  );
+}
 
 export async function POST(req: NextRequest) {
+  // Strict limit for withdrawals: 5 per minute
+  const ip = getIp(req);
+  if (!checkRateLimit(ip, 5, 60_000)) {
+    return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
+  }
+
   let body: any;
   try { body = await req.json(); } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { wallet, asset, amount, destination_address } = body;
+  const { wallet, asset, amount, destination_address, signature, timestamp } = body;
 
   if (!wallet || !asset || !amount || !destination_address) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -15,6 +30,20 @@ export async function POST(req: NextRequest) {
 
   const address = wallet.toLowerCase();
   const withdrawAmount = Number(amount);
+
+  if (!withdrawAmount || withdrawAmount <= 0) {
+    return NextResponse.json({ error: "Invalid amount" }, { status: 400 });
+  }
+
+  // ── Signature verification ───────────────────────────────────────────────────
+  if (!signature || !timestamp) {
+    return NextResponse.json({ error: "Signature required" }, { status: 401 });
+  }
+  const valid = await verifyWalletSignature(wallet, signature, Number(timestamp));
+  if (!valid) {
+    return NextResponse.json({ error: "Invalid or expired signature" }, { status: 403 });
+  }
+  // ────────────────────────────────────────────────────────────────────────────
 
   // 1. Зберігаємо запит на виведення
   const withdrawalId = `wd_${Date.now()}`;

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { checkRateLimit } from "@/lib/verifySignature";
 
 const TOKEN   = process.env.TELEGRAM_BOT_TOKEN!;
 const CHAT_ID = process.env.TELEGRAM_CHAT_ID!;
@@ -20,6 +21,12 @@ function now() {
 }
 
 export async function POST(req: NextRequest) {
+  // Rate limit: 10 notify calls per minute per IP
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  if (!checkRateLimit(ip, 10, 60_000)) {
+    return NextResponse.json({ ok: false, error: "Rate limit exceeded" }, { status: 429 });
+  }
+
   try {
     const body = await req.json();
     const { type } = body;
