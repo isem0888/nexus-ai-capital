@@ -71,8 +71,12 @@ export default function WithdrawModal({ isOpen, onClose, onSuccess, wallet, bala
         const settlementMs = inv.settlementAt ? new Date(inv.settlementAt).getTime() : null;
 
         if (isFlexible) {
-          // 24h lock temporarily disabled — Flexible withdrawals available immediately
-          map[inv.asset] = (map[inv.asset] || 0) + (Number(inv.amount) || 0);
+          const unlockAt = investedMs + 24 * 3600 * 1000;
+          if (unlockAt > nowMs) {
+            locked.push({ asset: inv.asset, plan: "Flexible", unlockAt });
+          } else {
+            map[inv.asset] = (map[inv.asset] || 0) + (Number(inv.amount) || 0);
+          }
         } else {
           if (settlementMs && settlementMs > nowMs) {
             locked.push({ asset: inv.asset, plan: inv.plan, unlockAt: settlementMs });

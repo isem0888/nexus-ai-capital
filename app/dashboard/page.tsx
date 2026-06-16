@@ -741,102 +741,189 @@ function TransactionsSection({ address }: { address?: string }) {
         <div className="px-5 md:px-6 py-4 border-b border-slate-700/40">
           <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">Transaction History</h3>
         </div>
-        <div className="divide-y divide-slate-700/20">
-          {investments.map((inv: any) => {
-            const icon = ASSET_ICONS[inv.asset] || { icon: "?", color: "text-slate-400", bg: "bg-slate-500/20" };
-            return (
-              <div key={inv.id} className="flex items-center gap-4 px-5 md:px-6 py-4">
-                <div className="w-9 h-9 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center flex-shrink-0">
-                  <svg className="w-4 h-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m-8-8h16" />
-                  </svg>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-semibold text-white text-sm">Deposit</span>
-                    <span className={`text-xs font-bold ${icon.color}`}>{inv.asset}</span>
-                    <span className="text-xs text-slate-600">·</span>
-                    <span className="text-xs text-slate-500">{inv.plan} Plan</span>
-                  </div>
-                  <div className="text-xs text-slate-600 mt-0.5">{fmt(inv.investedAt)}</div>
-                </div>
-                <div className="text-right flex-shrink-0">
-                  <div className="font-bold text-green-400">+{inv.amount} {inv.asset}</div>
-                  <div className="text-xs text-slate-600">{inv.apr}% APR</div>
-                </div>
-              </div>
-            );
-          })}
+        {(() => {
+          // ── Compute daily accrual rows from investments ──────────────────────
+          const accruals: Array<{
+            key: string; asset: string; plan: string;
+            amount: number; date: Date; day: number;
+          }> = [];
 
-          {withdrawals.map((w: any) => {
-            const icon = ASSET_ICONS[w.asset] || { icon: "?", color: "text-slate-400", bg: "bg-slate-500/20" };
-            const statusColor = w.status === "completed"
-              ? "text-green-400 bg-green-500/10 border-green-500/20"
-              : w.status === "rejected"
-              ? "text-red-400 bg-red-500/10 border-red-500/20"
-              : "text-amber-400 bg-amber-500/10 border-amber-500/20";
-            const statusLabel = w.status === "completed" ? "Completed" : w.status === "rejected" ? "Rejected" : "Pending";
-            return (
-              <div key={w.id} className="flex items-center gap-4 px-5 md:px-6 py-4">
-                <div className="w-9 h-9 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center flex-shrink-0">
-                  <svg className="w-4 h-4 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                  </svg>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-semibold text-white text-sm">Withdrawal</span>
-                    <span className={`text-xs font-bold ${icon.color}`}>{w.asset}</span>
-                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${statusColor}`}>{statusLabel}</span>
-                  </div>
-                  <div className="text-xs text-slate-600 mt-0.5 font-mono truncate">{w.destination_address}</div>
-                  <div className="text-xs text-slate-600">{new Date(w.created_at).toLocaleDateString("uk-UA")}</div>
-                </div>
-                <div className="text-right flex-shrink-0">
-                  <div className="font-bold text-red-400">-{w.amount} {w.asset}</div>
-                </div>
-              </div>
-            );
-          })}
+          investments.forEach((inv: any) => {
+            const start = new Date(inv.investedAt).getTime();
+            const daysPassed = Math.floor((now - start) / 86400000);
+            if (daysPassed <= 0) return;
+            const dailyProfit = +((inv.amount * (inv.apr / 100)) / 365).toFixed(6);
+            // Show last 30 days max per investment
+            const showFrom = Math.max(0, daysPassed - 30);
+            for (let i = showFrom; i < daysPassed; i++) {
+              accruals.push({
+                key: `accrual_${inv.id}_${i + 1}`,
+                asset: inv.asset,
+                plan: inv.plan,
+                amount: dailyProfit,
+                date: new Date(start + (i + 1) * 86400000),
+                day: i + 1,
+              });
+            }
+          });
+          accruals.sort((a, b) => b.date.getTime() - a.date.getTime());
 
-          {onchainTxs.map((tx: any) => {
-            const ethValue = (Number(BigInt(tx.value)) / 1e18).toFixed(6);
-            const date = new Date(Number(tx.timeStamp) * 1000).toLocaleDateString("uk-UA");
-            const shortFrom = tx.from ? `${tx.from.slice(0, 6)}...${tx.from.slice(-4)}` : "—";
-            return (
-              <div key={tx.hash} className="flex items-center gap-4 px-5 md:px-6 py-4">
-                <div className="w-9 h-9 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center flex-shrink-0">
-                  <svg className="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                  </svg>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-semibold text-white text-sm">Received</span>
-                    <span className="text-xs font-bold text-blue-400">ETH</span>
-                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full border bg-blue-500/10 border-blue-500/20 text-blue-400">On-chain</span>
-                  </div>
-                  <div className="text-xs text-slate-600 mt-0.5">From: <span className="font-mono">{shortFrom}</span></div>
-                  <div className="text-xs text-slate-600">{date}</div>
-                </div>
-                <div className="text-right flex-shrink-0">
-                  <div className="font-bold text-blue-400">+{ethValue} ETH</div>
-                  <a
-                    href={`https://etherscan.io/tx/${tx.hash}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-slate-600 hover:text-blue-400 transition"
-                  >
-                    View ↗
-                  </a>
-                </div>
-              </div>
-            );
-          })}
+          // ── Merge all tx types by date (newest first) ───────────────────────
+          type TxItem =
+            | { type: "deposit";   inv: any;    date: Date }
+            | { type: "accrual";   ac: typeof accruals[0]; date: Date }
+            | { type: "withdrawal"; w: any;     date: Date }
+            | { type: "onchain";   tx: any;     date: Date };
 
-          {investments.length === 0 && withdrawals.length === 0 && onchainTxs.length === 0 && (
-            <div className="px-5 py-10 text-center text-slate-600 text-sm">No transactions yet</div>
-          )}
+          const allTxs: TxItem[] = [
+            ...investments.map(inv => ({
+              type: "deposit" as const, inv, date: new Date(inv.investedAt),
+            })),
+            ...accruals.map(ac => ({ type: "accrual" as const, ac, date: ac.date })),
+            ...withdrawals.map(w => ({
+              type: "withdrawal" as const, w, date: new Date(w.created_at),
+            })),
+            ...onchainTxs.map(tx => ({
+              type: "onchain" as const, tx, date: new Date(Number(tx.timeStamp) * 1000),
+            })),
+          ].sort((a, b) => b.date.getTime() - a.date.getTime());
+
+          return (
+            <div className="divide-y divide-slate-700/20">
+              {allTxs.map((item) => {
+                if (item.type === "deposit") {
+                  const inv = item.inv;
+                  const icon = ASSET_ICONS[inv.asset] || { icon: "?", color: "text-slate-400", bg: "bg-slate-500/20" };
+                  return (
+                    <div key={`dep_${inv.id}`} className="flex items-center gap-4 px-5 md:px-6 py-4">
+                      <div className="w-9 h-9 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center flex-shrink-0">
+                        <svg className="w-4 h-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m-8-8h16" />
+                        </svg>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-semibold text-white text-sm">Deposit</span>
+                          <span className={`text-xs font-bold ${icon.color}`}>{inv.asset}</span>
+                          <span className="text-xs text-slate-600">·</span>
+                          <span className="text-xs text-slate-500">{inv.plan} Plan</span>
+                        </div>
+                        <div className="text-xs text-slate-600 mt-0.5">{fmt(inv.investedAt)}</div>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <div className="font-bold text-green-400">+{inv.amount} {inv.asset}</div>
+                        <div className="text-xs text-slate-600">{inv.apr}% APR</div>
+                      </div>
+                    </div>
+                  );
+                }
+
+                if (item.type === "accrual") {
+                  const ac = item.ac;
+                  const icon = ASSET_ICONS[ac.asset] || { icon: "?", color: "text-slate-400", bg: "bg-slate-500/20" };
+                  return (
+                    <div key={ac.key} className="flex items-center gap-4 px-5 md:px-6 py-4">
+                      <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                        <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                        </svg>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-semibold text-white text-sm">Daily Interest</span>
+                          <span className={`text-xs font-bold ${icon.color}`}>{ac.asset}</span>
+                          <span className="text-xs font-semibold px-2 py-0.5 rounded-full border bg-emerald-500/10 border-emerald-500/20 text-emerald-400">Day {ac.day}</span>
+                        </div>
+                        <div className="text-xs text-slate-600 mt-0.5">
+                          {ac.plan} · {ac.date.toLocaleDateString("uk-UA")}
+                        </div>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <div className="font-bold text-emerald-400">+{ac.amount} {ac.asset}</div>
+                        <div className="text-xs text-slate-600">Accrued</div>
+                      </div>
+                    </div>
+                  );
+                }
+
+                if (item.type === "withdrawal") {
+                  const w = item.w;
+                  const icon = ASSET_ICONS[w.asset] || { icon: "?", color: "text-slate-400", bg: "bg-slate-500/20" };
+                  const statusColor = w.status === "completed"
+                    ? "text-green-400 bg-green-500/10 border-green-500/20"
+                    : w.status === "rejected"
+                    ? "text-red-400 bg-red-500/10 border-red-500/20"
+                    : "text-amber-400 bg-amber-500/10 border-amber-500/20";
+                  const statusLabel = w.status === "completed" ? "Completed" : w.status === "rejected" ? "Rejected" : "Pending";
+                  return (
+                    <div key={w.id} className="flex items-center gap-4 px-5 md:px-6 py-4">
+                      <div className="w-9 h-9 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center flex-shrink-0">
+                        <svg className="w-4 h-4 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-semibold text-white text-sm">Withdrawal</span>
+                          <span className={`text-xs font-bold ${icon.color}`}>{w.asset}</span>
+                          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${statusColor}`}>{statusLabel}</span>
+                        </div>
+                        <div className="text-xs text-slate-600 mt-0.5 font-mono truncate">{w.destination_address}</div>
+                        <div className="text-xs text-slate-600">{new Date(w.created_at).toLocaleDateString("uk-UA")}</div>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <div className="font-bold text-red-400">-{w.amount} {w.asset}</div>
+                      </div>
+                    </div>
+                  );
+                }
+
+                if (item.type === "onchain") {
+                  const tx = item.tx;
+                  const ethValue = (Number(BigInt(tx.value)) / 1e18).toFixed(6);
+                  const date = new Date(Number(tx.timeStamp) * 1000).toLocaleDateString("uk-UA");
+                  const shortFrom = tx.from ? `${tx.from.slice(0, 6)}...${tx.from.slice(-4)}` : "—";
+                  return (
+                    <div key={tx.hash} className="flex items-center gap-4 px-5 md:px-6 py-4">
+                      <div className="w-9 h-9 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center flex-shrink-0">
+                        <svg className="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                        </svg>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-semibold text-white text-sm">Received</span>
+                          <span className="text-xs font-bold text-blue-400">ETH</span>
+                          <span className="text-xs font-semibold px-2 py-0.5 rounded-full border bg-blue-500/10 border-blue-500/20 text-blue-400">On-chain</span>
+                        </div>
+                        <div className="text-xs text-slate-600 mt-0.5">From: <span className="font-mono">{shortFrom}</span></div>
+                        <div className="text-xs text-slate-600">{date}</div>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <div className="font-bold text-blue-400">+{ethValue} ETH</div>
+                        <a
+                          href={`https://etherscan.io/tx/${tx.hash}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-slate-600 hover:text-blue-400 transition"
+                        >
+                          View ↗
+                        </a>
+                      </div>
+                    </div>
+                  );
+                }
+
+                return null;
+              })}
+
+              {investments.length === 0 && withdrawals.length === 0 && onchainTxs.length === 0 && (
+                <div className="px-5 py-10 text-center text-slate-600 text-sm">No transactions yet</div>
+              )}
+            </div>
+          );
+        })()}
+
         </div>
       </div>
     </div>
