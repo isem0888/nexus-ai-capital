@@ -267,6 +267,22 @@ function OverviewSection({ stats, onWithdraw, address, prices }: any) {
   );
 }
 
+// ─── Demo investment (shown when no real data) ────────────────────────────────
+const DEMO_INVESTED_AT = new Date(Date.now() - 25 * 3600 * 1000).toISOString();
+const DEMO_DAILY = +(0.125 * 8 / 100 / 365).toFixed(8);
+const DEMO_INVESTMENT = {
+  id: "demo_inv_1",
+  address: "demo",
+  asset: "ETH",
+  plan: "Flexible",
+  apr: 8,
+  amount: 0.125,
+  profit: DEMO_DAILY,
+  total: +(0.125 + DEMO_DAILY).toFixed(8),
+  investedAt: DEMO_INVESTED_AT,
+  settlementAt: null,
+};
+
 // ─── Investments ──────────────────────────────────────────────────────────────
 const ASSET_ICONS: Record<string, { icon: string; color: string; bg: string }> = {
   ETH:  { icon: "Ξ",  color: "text-blue-400",   bg: "bg-blue-500/20" },
@@ -305,10 +321,16 @@ function InvestmentsSection({ address }: { address?: string }) {
           const res = await fetch(`/api/investments?address=${address}`);
           if (res.ok) {
             const data = await res.json();
-            if (Array.isArray(data) && data.length >= 0) {
+            if (Array.isArray(data) && data.length > 0) {
               localStorage.setItem(storageKey, JSON.stringify([...data].reverse()));
               setInvestments(data);
               if (data.length === 1) setExpandedIds(new Set([data[0].id]));
+              setLoading(false);
+              return;
+            } else if (Array.isArray(data) && data.length === 0) {
+              // No real investments — show demo
+              setInvestments([DEMO_INVESTMENT]);
+              setExpandedIds(new Set([DEMO_INVESTMENT.id]));
               setLoading(false);
               return;
             }
@@ -318,9 +340,17 @@ function InvestmentsSection({ address }: { address?: string }) {
       try {
         const data = JSON.parse(localStorage.getItem(storageKey) || "[]");
         const reversed = [...data].reverse();
-        setInvestments(reversed);
-        if (reversed.length === 1) setExpandedIds(new Set([reversed[0].id]));
-      } catch {}
+        if (reversed.length > 0) {
+          setInvestments(reversed);
+          if (reversed.length === 1) setExpandedIds(new Set([reversed[0].id]));
+        } else {
+          setInvestments([DEMO_INVESTMENT]);
+          setExpandedIds(new Set([DEMO_INVESTMENT.id]));
+        }
+      } catch {
+        setInvestments([DEMO_INVESTMENT]);
+        setExpandedIds(new Set([DEMO_INVESTMENT.id]));
+      }
       setLoading(false);
     }
     load();
@@ -541,15 +571,23 @@ function TransactionsSection({ address }: { address?: string }) {
           const res = await fetch(`/api/investments?address=${address}`);
           if (res.ok) {
             const data = await res.json();
-            if (Array.isArray(data)) setInvestments(data);
+            if (Array.isArray(data) && data.length > 0) {
+              setInvestments(data);
+              return;
+            }
           }
         } catch {}
+        // No real investments — show demo
+        setInvestments([DEMO_INVESTMENT]);
         return;
       }
       try {
         const data = JSON.parse(localStorage.getItem(storageKey) || "[]");
-        setInvestments([...data].reverse());
-      } catch {}
+        const reversed = [...data].reverse();
+        setInvestments(reversed.length > 0 ? reversed : [DEMO_INVESTMENT]);
+      } catch {
+        setInvestments([DEMO_INVESTMENT]);
+      }
     }
 
     async function loadWithdrawals() {
@@ -1037,6 +1075,8 @@ export default function DashboardPage() {
           investments = JSON.parse(localStorage.getItem(key) || "[]");
         } catch {}
       }
+      // Fall back to demo data if still empty
+      if (investments.length === 0) investments = [DEMO_INVESTMENT];
 
       const priceMap: Record<string, number> = {
         ETH: prices.ETH || 1630,
