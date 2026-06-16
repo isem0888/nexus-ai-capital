@@ -923,8 +923,6 @@ function TransactionsSection({ address }: { address?: string }) {
             </div>
           );
         })()}
-
-        </div>
       </div>
     </div>
   );
