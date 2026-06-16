@@ -39,7 +39,8 @@ export default function InvestPage() {
     if (savedPlan) setPlan(savedPlan);
   }, []);
 
-  const depositMethod = "wallet";
+  const [depositMethod, setDepositMethod] = useState<"wallet" | "manual">("wallet");
+  const [copied, setCopied] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [txStatus, setTxStatus] = useState<"idle" | "pending" | "success" | "error">("idle");
   const [txHash, setTxHash] = useState<string>("");
@@ -400,6 +401,14 @@ export default function InvestPage() {
   const yearlyProfit = (depositAmount * apr) / 100;
   const isValidDeposit = getMinDeposit(asset) === 0 || depositAmount >= getMinDeposit(asset);
 
+  const copyAddress = async () => {
+    try {
+      await navigator.clipboard.writeText(depositAddresses[asset]);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) { console.error("Failed to copy:", err); }
+  };
+
   const handleStartInvest = () => {
     if (!isValidDeposit) return;
     if (depositMethod === "wallet" && !isConnected) return;
@@ -439,6 +448,11 @@ export default function InvestPage() {
       setErrorMsg(err.message || "Unexpected error");
       setTxStatus("error");
     }
+  };
+
+  const handleManualSent = () => {
+    setTxStatus("success");
+    setTxHash("manual-" + Date.now());
   };
 
   const closeModal = () => {
@@ -817,44 +831,123 @@ export default function InvestPage() {
             </div>
           )}
 
-          {/* Wallet info */}
+          {/* Deposit Method */}
           {isValidDeposit && (
             <div className="mb-8">
-              <div className="rounded-2xl border border-blue-500/20 bg-blue-500/10 p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
-                    <svg className="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                    </svg>
+              <h3 className="text-lg font-bold mb-4 text-white">Deposit Method</h3>
+              <div className="space-y-3 mb-6">
+                {[
+                  { value: "wallet", label: "Connect Wallet",  desc: "Instant deposit via Web3 transaction" },
+                  { value: "manual", label: "Manual Transfer", desc: "Send funds to deposit address" },
+                ].map((m) => (
+                  <label
+                    key={m.value}
+                    className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition ${
+                      depositMethod === m.value
+                        ? "border-blue-500/60 bg-blue-500/10"
+                        : "border-slate-700/50 hover:border-blue-500/40 bg-slate-800/30"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="depositMethod"
+                      value={m.value}
+                      checked={depositMethod === m.value}
+                      onChange={() => setDepositMethod(m.value as "wallet" | "manual")}
+                      className="w-5 h-5 text-blue-600"
+                    />
+                    <div>
+                      <div className="font-semibold text-white">{m.label}</div>
+                      <div className="text-sm text-slate-500">{m.desc}</div>
+                    </div>
+                  </label>
+                ))}
+              </div>
+
+              {depositMethod === "wallet" && (
+                <div className="rounded-2xl border border-blue-500/20 bg-blue-500/10 p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
+                      <svg className="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <div className="font-semibold text-white">{isConnected ? "Wallet Connected" : "Wallet Required"}</div>
+                      <div className="text-sm text-slate-400">
+                        {isConnected ? `${address?.slice(0, 6)}...${address?.slice(-4)}` : "Connect your wallet to proceed"}
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <div className="font-semibold text-white">{isConnected ? "Wallet Connected" : "Wallet Required"}</div>
-                    <div className="text-sm text-slate-400">
-                      {isConnected ? `${address?.slice(0, 6)}...${address?.slice(-4)}` : "Connect your wallet to proceed"}
+                  <div className="rounded-xl border border-slate-700/50 bg-slate-800/50 p-4">
+                    <div className="text-xs text-slate-500 mb-1">Amount</div>
+                    <div className="text-xl font-bold text-white">{depositAmount} {asset}</div>
+                  </div>
+                </div>
+              )}
+
+              {depositMethod === "manual" && (
+                <div className="rounded-2xl border border-slate-700/50 bg-slate-800/40 p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 rounded-full bg-violet-500/20 flex items-center justify-center">
+                      <svg className="w-5 h-5 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                      </svg>
+                    </div>
+                    <div>
+                      <div className="font-semibold text-white">{asset} Deposit Address</div>
+                      <div className="text-sm text-slate-500">Network: {assetConfig[asset].network}</div>
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-slate-700/50 bg-slate-800/60 p-4 mb-4">
+                    <div className="text-xs text-slate-500 mb-1">Address</div>
+                    <div className="font-mono text-sm break-all text-slate-200">{depositAddresses[asset]}</div>
+                  </div>
+                  <div className="rounded-xl border border-slate-700/50 bg-slate-800/60 p-6 mb-4 flex flex-col items-center">
+                    <div className="w-48 h-48 mb-4">
+                      <img
+                        src={`/qr-${asset.toLowerCase()}.png`}
+                        alt={`${asset} QR Code`}
+                        className="w-full h-full object-contain rounded-lg"
+                        onError={(e) => { e.currentTarget.src = "/qr-usdt.png"; }}
+                      />
+                    </div>
+                    <div className="text-sm text-slate-400 font-medium">Scan to send {asset}</div>
+                  </div>
+                  <button
+                    onClick={copyAddress}
+                    className="w-full px-4 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-violet-600 text-white font-semibold hover:from-blue-500 hover:to-violet-500 transition shadow-lg"
+                  >
+                    {copied ? "✓ Address Copied" : "Copy Address"}
+                  </button>
+                  <div className="mt-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                    <div className="flex items-start gap-2">
+                      <svg className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                      <div className="text-xs text-amber-300 leading-relaxed">
+                        Send only {asset} to this address. Sending other assets may result in permanent loss.
+                      </div>
                     </div>
                   </div>
                 </div>
-                <div className="rounded-xl border border-slate-700/50 bg-slate-800/50 p-4">
-                  <div className="text-xs text-slate-500 mb-1">Amount</div>
-                  <div className="text-xl font-bold text-white">{depositAmount} {asset}</div>
-                </div>
-              </div>
+              )}
             </div>
           )}
 
           {/* Start Investment Button */}
           <button
             onClick={handleStartInvest}
-            disabled={!isValidDeposit || !isConnected}
+            disabled={!isValidDeposit || (depositMethod === "wallet" && !isConnected)}
             className={`w-full py-4 rounded-xl font-bold text-lg transition ${
-              isValidDeposit && isConnected
+              isValidDeposit && (depositMethod === "manual" || isConnected)
                 ? "bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 text-white shadow-xl shadow-blue-500/25"
                 : "bg-slate-800 text-slate-600 cursor-not-allowed border border-slate-700/50"
             }`}
           >
             {!isValidDeposit
               ? "Enter Valid Amount"
-              : !isConnected
+              : depositMethod === "wallet" && !isConnected
               ? "Connect Wallet To Invest"
               : "Start Investment"}
           </button>
@@ -939,12 +1032,21 @@ export default function InvestPage() {
                   ))}
                 </div>
 
-                <button
-                  onClick={handleConfirmPayment}
-                  className="w-full py-4 rounded-xl bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 text-white font-bold text-lg transition shadow-xl shadow-blue-500/25"
-                >
-                  Confirm & Send Transaction
-                </button>
+                {depositMethod === "wallet" ? (
+                  <button
+                    onClick={handleConfirmPayment}
+                    className="w-full py-4 rounded-xl bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 text-white font-bold text-lg transition shadow-xl shadow-blue-500/25"
+                  >
+                    Confirm & Send Transaction
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleManualSent}
+                    className="w-full py-4 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white font-bold text-lg transition shadow-xl shadow-green-500/25"
+                  >
+                    I've Sent the Funds
+                  </button>
+                )}
               </>
             )}
 
