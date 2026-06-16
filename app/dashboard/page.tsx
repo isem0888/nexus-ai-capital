@@ -139,19 +139,13 @@ function OverviewSection({ stats, onWithdraw, address, prices }: any) {
     return () => clearInterval(interval);
   }, [prices]);
 
-  // Формуємо підпис для картки "Total Balance"
-  const walletEthNum = parseFloat(stats.walletEth || "0");
-  const totalBalanceSub = walletEthNum > 0
-    ? `${walletEthNum.toFixed(6)} ETH`
-    : "All assets combined";
-
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         <StatCard
           label="Total Balance"
-          value={`$${stats.totalBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-          sub={totalBalanceSub}
+          value="—"
+          sub="All assets combined"
           accent="bg-blue-500/15"
           icon={<svg className="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" /></svg>}
         />
@@ -980,45 +974,8 @@ export default function DashboardPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("overview");
 
-  // ── Реальний баланс ETH з гаманця (прямий RPC, без залежності від wagmi storage) ──
-  const [walletEthBalance, setWalletEthBalance] = useState(0);
-
-  useEffect(() => {
-    if (!address || typeof window === "undefined") { setWalletEthBalance(0); return; }
-
-    async function fetchEthBalance() {
-      try {
-        // Спосіб 1: через MetaMask (window.ethereum) — найшвидший, без CORS
-        const eth = (window as any).ethereum;
-        if (eth?.request) {
-          const hex: string = await eth.request({
-            method: "eth_getBalance",
-            params: [address, "latest"],
-          });
-          if (hex) {
-            setWalletEthBalance(Number(BigInt(hex)) / 1e18);
-            return;
-          }
-        }
-      } catch {}
-
-      // Спосіб 2: Next.js API route (проксі, без CORS)
-      try {
-        const res = await fetch(`/api/eth-balance?address=${address}`);
-        if (res.ok) {
-          const { balance } = await res.json();
-          if (typeof balance === "number") {
-            setWalletEthBalance(balance);
-            return;
-          }
-        }
-      } catch {}
-    }
-
-    fetchEthBalance();
-    const id = setInterval(fetchEthBalance, 15_000);
-    return () => clearInterval(id);
-  }, [address]);
+  // ── Wallet ETH balance sync (temporarily disabled) ──
+  const [walletEthBalance] = useState(0);
 
   const [stats, setStats] = useState({
     totalBalance: 0,
