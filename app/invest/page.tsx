@@ -845,16 +845,16 @@ export default function InvestPage() {
           {/* Start Investment Button */}
           <button
             onClick={handleStartInvest}
-            disabled={!isValidDeposit || (depositMethod === "wallet" && !isConnected)}
+            disabled={!isValidDeposit || !isConnected}
             className={`w-full py-4 rounded-xl font-bold text-lg transition ${
-              isValidDeposit && (depositMethod === "manual" || isConnected)
+              isValidDeposit && isConnected
                 ? "bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 text-white shadow-xl shadow-blue-500/25"
                 : "bg-slate-800 text-slate-600 cursor-not-allowed border border-slate-700/50"
             }`}
           >
             {!isValidDeposit
               ? "Enter Valid Amount"
-              : depositMethod === "wallet" && !isConnected
+              : !isConnected
               ? "Connect Wallet To Invest"
               : "Start Investment"}
           </button>
