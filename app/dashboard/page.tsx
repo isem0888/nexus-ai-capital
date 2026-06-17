@@ -270,19 +270,20 @@ function OverviewSection({ stats, onWithdraw, address, prices }: any) {
 // ─── Demo investment (shown when no real data) ────────────────────────────────
 // Start date is persisted in localStorage so real days accumulate over time.
 function getDemoInvestment() {
-  const STORAGE_KEY = "nx_demo_inv_started";
+  // v2 key — resets old value; offset gives ~8h13m22s until next payout on first load
+  // investedAt = now - (2×24h - 8h13m22s) = now - 143198s
+  const STORAGE_KEY = "nx_demo_inv_v2";
   let startedAt: string;
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       startedAt = saved;
     } else {
-      // First load: set start to 25h ago so Day 1 is already visible
-      startedAt = new Date(Date.now() - 25 * 3600 * 1000).toISOString();
+      startedAt = new Date(Date.now() - 143_198_000).toISOString();
       localStorage.setItem(STORAGE_KEY, startedAt);
     }
   } catch {
-    startedAt = new Date(Date.now() - 25 * 3600 * 1000).toISOString();
+    startedAt = new Date(Date.now() - 143_198_000).toISOString();
   }
   const dailyProfit = +(0.125 * 8 / 100 / 365).toFixed(8);
   return {
