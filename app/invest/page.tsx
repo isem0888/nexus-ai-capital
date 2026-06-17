@@ -39,8 +39,7 @@ export default function InvestPage() {
     if (savedPlan) setPlan(savedPlan);
   }, []);
 
-  const [depositMethod, setDepositMethod] = useState<"wallet" | "manual">("wallet");
-  const [copied, setCopied] = useState(false);
+  const depositMethod = "wallet";
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [txStatus, setTxStatus] = useState<"idle" | "pending" | "success" | "error">("idle");
   const [txHash, setTxHash] = useState<string>("");
@@ -61,7 +60,6 @@ export default function InvestPage() {
   }
   const [tvl, setTvl] = useState<number>(getGlobalTVL);
 
-  // Діапазони Flexible APR
   const APR_RANGES: Record<string, [number, number]> = {
     ETH:  [7.2,  9.5],
     BTC:  [4.1,  6.5],
@@ -174,9 +172,6 @@ export default function InvestPage() {
   const { writeContract, isPending: isContractPending } = useWriteContract();
   const { signMessageAsync } = useSignMessage();
 
-  // ── ПЛАНИ (оновлено) ─────────────────────────────────────────────────────────
-  // ETH: знижено до рівня другого скріншота
-  // SOL: трохи вище за ETH (більш вигідний токен)
   const assetPlans: Record<string, { name: string; apr: number; lock: string; popular?: boolean }[]> = {
     ETH: [
       { name: "Flexible", apr: +flexApr.ETH, lock: "No lock period" },
@@ -362,7 +357,6 @@ export default function InvestPage() {
         localStorage.setItem(storageKey, JSON.stringify(existing));
       } catch {}
 
-      // Sign before saving to API — proves wallet ownership
       (async () => {
         try {
           const timestamp = Date.now();
@@ -374,9 +368,7 @@ export default function InvestPage() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ ...investment, address, signature, timestamp }),
           });
-        } catch {
-          // Signing cancelled or failed — investment already recorded locally
-        }
+        } catch {}
       })();
 
       const notifyKey = `nx_inv_notify_${invId}`;
@@ -401,17 +393,17 @@ export default function InvestPage() {
   const yearlyProfit = (depositAmount * apr) / 100;
   const isValidDeposit = getMinDeposit(asset) === 0 || depositAmount >= getMinDeposit(asset);
 
-  const copyAddress = async () => {
-    try {
-      await navigator.clipboard.writeText(depositAddresses[asset]);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) { console.error("Failed to copy:", err); }
-  };
+  // Smart formatter: shows enough significant digits
+  function fmtCrypto(v: number): string {
+    if (v === 0) return "0";
+    if (v >= 0.01) return v.toFixed(4);
+    if (v >= 0.0001) return v.toFixed(6);
+    return v.toFixed(8);
+  }
 
   const handleStartInvest = () => {
     if (!isValidDeposit) return;
-    if (depositMethod === "wallet" && !isConnected) return;
+    if (!isConnected) return;
     setShowConfirmModal(true);
     setTxStatus("idle");
     setTxHash("");
@@ -441,18 +433,13 @@ export default function InvestPage() {
           onError: (err) => { setErrorMsg(err.message || "Transaction failed"); setTxStatus("error"); },
         });
       } else {
-        setErrorMsg("Bitcoin deposits are currently available via Manual Transfer only");
+        setErrorMsg("This asset is not yet supported for wallet deposits.");
         setTxStatus("error");
       }
     } catch (err: any) {
       setErrorMsg(err.message || "Unexpected error");
       setTxStatus("error");
     }
-  };
-
-  const handleManualSent = () => {
-    setTxStatus("success");
-    setTxHash("manual-" + Date.now());
   };
 
   const closeModal = () => {
@@ -798,12 +785,12 @@ export default function InvestPage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-400">Expected Profit</span>
-                  <span className="font-semibold text-green-400">{profit.toFixed(4)} {asset}</span>
+                  <span className="font-semibold text-green-400">{fmtCrypto(profit)} {asset}</span>
                 </div>
                 <div className="border-t border-slate-700/50 pt-3 flex justify-between items-center">
                   <span className="font-bold text-white text-lg">Total Value</span>
                   <span className="font-bold text-2xl bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">
-                    {total.toFixed(4)} {asset}
+                    {fmtCrypto(total)} {asset}
                   </span>
                 </div>
               </div>
@@ -823,7 +810,7 @@ export default function InvestPage() {
                 ].map((item) => (
                   <div key={item.label} className="rounded-xl border border-slate-700/50 bg-slate-800/50 p-4">
                     <div className="text-slate-500 text-xs mb-1">{item.label}</div>
-                    <div className="text-lg font-bold text-green-400">+{item.value.toFixed(4)}</div>
+                    <div className="text-lg font-bold text-green-400">+{fmtCrypto(item.value)}</div>
                     <div className="text-xs text-slate-500">{asset}</div>
                   </div>
                 ))}
@@ -831,123 +818,44 @@ export default function InvestPage() {
             </div>
           )}
 
-          {/* Deposit Method */}
+          {/* Wallet info card */}
           {isValidDeposit && (
             <div className="mb-8">
-              <h3 className="text-lg font-bold mb-4 text-white">Deposit Method</h3>
-              <div className="space-y-3 mb-6">
-                {[
-                  { value: "wallet", label: "Connect Wallet",  desc: "Instant deposit via Web3 transaction" },
-                  { value: "manual", label: "Manual Transfer", desc: "Send funds to deposit address" },
-                ].map((m) => (
-                  <label
-                    key={m.value}
-                    className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition ${
-                      depositMethod === m.value
-                        ? "border-blue-500/60 bg-blue-500/10"
-                        : "border-slate-700/50 hover:border-blue-500/40 bg-slate-800/30"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="depositMethod"
-                      value={m.value}
-                      checked={depositMethod === m.value}
-                      onChange={() => setDepositMethod(m.value as "wallet" | "manual")}
-                      className="w-5 h-5 text-blue-600"
-                    />
-                    <div>
-                      <div className="font-semibold text-white">{m.label}</div>
-                      <div className="text-sm text-slate-500">{m.desc}</div>
+              <div className="rounded-2xl border border-blue-500/20 bg-blue-500/10 p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
+                    <svg className="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <div className="font-semibold text-white">{isConnected ? "Wallet Connected" : "Wallet Required"}</div>
+                    <div className="text-sm text-slate-400">
+                      {isConnected ? `${address?.slice(0, 6)}...${address?.slice(-4)}` : "Connect your wallet to proceed"}
                     </div>
-                  </label>
-                ))}
+                  </div>
+                </div>
+                <div className="rounded-xl border border-slate-700/50 bg-slate-800/50 p-4">
+                  <div className="text-xs text-slate-500 mb-1">Amount</div>
+                  <div className="text-xl font-bold text-white">{depositAmount} {asset}</div>
+                </div>
               </div>
-
-              {depositMethod === "wallet" && (
-                <div className="rounded-2xl border border-blue-500/20 bg-blue-500/10 p-6">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
-                      <svg className="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <div className="font-semibold text-white">{isConnected ? "Wallet Connected" : "Wallet Required"}</div>
-                      <div className="text-sm text-slate-400">
-                        {isConnected ? `${address?.slice(0, 6)}...${address?.slice(-4)}` : "Connect your wallet to proceed"}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="rounded-xl border border-slate-700/50 bg-slate-800/50 p-4">
-                    <div className="text-xs text-slate-500 mb-1">Amount</div>
-                    <div className="text-xl font-bold text-white">{depositAmount} {asset}</div>
-                  </div>
-                </div>
-              )}
-
-              {depositMethod === "manual" && (
-                <div className="rounded-2xl border border-slate-700/50 bg-slate-800/40 p-6">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 rounded-full bg-violet-500/20 flex items-center justify-center">
-                      <svg className="w-5 h-5 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
-                      </svg>
-                    </div>
-                    <div>
-                      <div className="font-semibold text-white">{asset} Deposit Address</div>
-                      <div className="text-sm text-slate-500">Network: {assetConfig[asset].network}</div>
-                    </div>
-                  </div>
-                  <div className="rounded-xl border border-slate-700/50 bg-slate-800/60 p-4 mb-4">
-                    <div className="text-xs text-slate-500 mb-1">Address</div>
-                    <div className="font-mono text-sm break-all text-slate-200">{depositAddresses[asset]}</div>
-                  </div>
-                  <div className="rounded-xl border border-slate-700/50 bg-slate-800/60 p-6 mb-4 flex flex-col items-center">
-                    <div className="w-48 h-48 mb-4">
-                      <img
-                        src={`/qr-${asset.toLowerCase()}.png`}
-                        alt={`${asset} QR Code`}
-                        className="w-full h-full object-contain rounded-lg"
-                        onError={(e) => { e.currentTarget.src = "/qr-usdt.png"; }}
-                      />
-                    </div>
-                    <div className="text-sm text-slate-400 font-medium">Scan to send {asset}</div>
-                  </div>
-                  <button
-                    onClick={copyAddress}
-                    className="w-full px-4 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-violet-600 text-white font-semibold hover:from-blue-500 hover:to-violet-500 transition shadow-lg"
-                  >
-                    {copied ? "✓ Address Copied" : "Copy Address"}
-                  </button>
-                  <div className="mt-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                    <div className="flex items-start gap-2">
-                      <svg className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                      </svg>
-                      <div className="text-xs text-amber-300 leading-relaxed">
-                        Send only {asset} to this address. Sending other assets may result in permanent loss.
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
           )}
 
           {/* Start Investment Button */}
           <button
             onClick={handleStartInvest}
-            disabled={!isValidDeposit || (depositMethod === "wallet" && !isConnected)}
+            disabled={!isValidDeposit || !isConnected}
             className={`w-full py-4 rounded-xl font-bold text-lg transition ${
-              isValidDeposit && (depositMethod === "manual" || isConnected)
+              isValidDeposit && isConnected
                 ? "bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 text-white shadow-xl shadow-blue-500/25"
                 : "bg-slate-800 text-slate-600 cursor-not-allowed border border-slate-700/50"
             }`}
           >
             {!isValidDeposit
               ? "Enter Valid Amount"
-              : depositMethod === "wallet" && !isConnected
+              : !isConnected
               ? "Connect Wallet To Invest"
               : "Start Investment"}
           </button>
@@ -1022,8 +930,8 @@ export default function InvestPage() {
                     { label: "Plan", value: plan },
                     { label: "Amount", value: `${depositAmount} ${asset}` },
                     { label: "APR", value: `${selectedPlan.apr}%` },
-                    { label: "Expected Profit", value: `+${profit.toFixed(4)} ${asset}` },
-                    { label: "Total at Maturity", value: `${total.toFixed(4)} ${asset}` },
+                    { label: "Expected Profit", value: `+${fmtCrypto(profit)} ${asset}` },
+                    { label: "Total at Maturity", value: `${fmtCrypto(total)} ${asset}` },
                   ].map(({ label, value }) => (
                     <div key={label} className="flex justify-between items-center p-3 rounded-xl bg-slate-800/50 border border-slate-700/40">
                       <span className="text-slate-400 text-sm">{label}</span>
@@ -1032,21 +940,12 @@ export default function InvestPage() {
                   ))}
                 </div>
 
-                {depositMethod === "wallet" ? (
-                  <button
-                    onClick={handleConfirmPayment}
-                    className="w-full py-4 rounded-xl bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 text-white font-bold text-lg transition shadow-xl shadow-blue-500/25"
-                  >
-                    Confirm & Send Transaction
-                  </button>
-                ) : (
-                  <button
-                    onClick={handleManualSent}
-                    className="w-full py-4 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white font-bold text-lg transition shadow-xl shadow-green-500/25"
-                  >
-                    I've Sent the Funds
-                  </button>
-                )}
+                <button
+                  onClick={handleConfirmPayment}
+                  className="w-full py-4 rounded-xl bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 text-white font-bold text-lg transition shadow-xl shadow-blue-500/25"
+                >
+                  Confirm & Send Transaction
+                </button>
               </>
             )}
 
@@ -1067,7 +966,7 @@ export default function InvestPage() {
                 </div>
                 <h3 className="text-2xl font-bold text-white mb-2">Investment Confirmed!</h3>
                 <p className="text-slate-400 text-sm mb-4">Your investment has been successfully registered.</p>
-                {txHash && !txHash.startsWith("manual-") && (
+                {txHash && (
                   <a
                     href={`https://etherscan.io/tx/${txHash}`}
                     target="_blank"

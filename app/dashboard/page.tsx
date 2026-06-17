@@ -267,39 +267,6 @@ function OverviewSection({ stats, onWithdraw, address, prices }: any) {
   );
 }
 
-// ─── Demo investment (shown when no real data) ────────────────────────────────
-// Start date is persisted in localStorage so real days accumulate over time.
-function getDemoInvestment() {
-  // v2 key — resets old value; offset gives ~8h13m22s until next payout on first load
-  // investedAt = now - (2×24h - 8h13m22s) = now - 143198s
-  const STORAGE_KEY = "nx_demo_inv_v2";
-  let startedAt: string;
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      startedAt = saved;
-    } else {
-      startedAt = new Date(Date.now() - 143_198_000).toISOString();
-      localStorage.setItem(STORAGE_KEY, startedAt);
-    }
-  } catch {
-    startedAt = new Date(Date.now() - 143_198_000).toISOString();
-  }
-  const dailyProfit = +(0.125 * 8 / 100 / 365).toFixed(8);
-  return {
-    id: "demo_inv_1",
-    address: "demo",
-    asset: "ETH",
-    plan: "Flexible",
-    apr: 8,
-    amount: 0.125,
-    profit: dailyProfit,
-    total: +(0.125 + dailyProfit).toFixed(8),
-    investedAt: startedAt,
-    settlementAt: null,
-  };
-}
-
 // ─── Investments ──────────────────────────────────────────────────────────────
 const ASSET_ICONS: Record<string, { icon: string; color: string; bg: string }> = {
   ETH:  { icon: "Ξ",  color: "text-blue-400",   bg: "bg-blue-500/20" },
@@ -345,10 +312,7 @@ function InvestmentsSection({ address }: { address?: string }) {
               setLoading(false);
               return;
             } else if (Array.isArray(data) && data.length === 0) {
-              // No real investments — show demo
-              const demo = getDemoInvestment();
-              setInvestments([demo]);
-              setExpandedIds(new Set([demo.id]));
+              setInvestments([]);
               setLoading(false);
               return;
             }
@@ -362,14 +326,10 @@ function InvestmentsSection({ address }: { address?: string }) {
           setInvestments(reversed);
           if (reversed.length === 1) setExpandedIds(new Set([reversed[0].id]));
         } else {
-          const demo = getDemoInvestment();
-          setInvestments([demo]);
-          setExpandedIds(new Set([demo.id]));
+          setInvestments([]);
         }
       } catch {
-        const demo = getDemoInvestment();
-        setInvestments([demo]);
-        setExpandedIds(new Set([demo.id]));
+        setInvestments([]);
       }
       setLoading(false);
     }
@@ -452,7 +412,6 @@ function InvestmentsSection({ address }: { address?: string }) {
           return (
             <div key={inv.id} className="rounded-2xl border border-slate-700/50 bg-slate-900/60 backdrop-blur-xl overflow-hidden transition-all">
 
-              {/* ── Header (завжди видимий) ── */}
               <div className="flex items-center justify-between px-5 py-4">
                 <div className="flex items-center gap-3 min-w-0">
                   <div className={`w-10 h-10 rounded-xl flex-shrink-0 ${icon.bg} flex items-center justify-center font-bold text-lg ${icon.color}`}>
@@ -496,7 +455,6 @@ function InvestmentsSection({ address }: { address?: string }) {
                 </div>
               </div>
 
-              {/* ── Деталі: завжди відкриті якщо 1 інвестиція, або при розгортанні ── */}
               {(isExpanded || !multiMode) && (
                 <div className="px-5 pb-5 border-t border-slate-700/40 pt-4 space-y-3">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -559,7 +517,6 @@ function TransactionsSection({ address }: { address?: string }) {
 
   const storageKey = address ? `nx_inv_${address}` : "nx_inv_guest";
 
-  // ── On-chain ETH transactions (incoming) ──────────────────────────────────
   useEffect(() => {
     if (!address) return;
     async function fetchOnchain() {
@@ -568,7 +525,6 @@ function TransactionsSection({ address }: { address?: string }) {
         if (!res.ok) return;
         const data = await res.json();
         if (data.status === "1" && Array.isArray(data.result)) {
-          // Only show incoming ETH (to === address, value > 0, no error)
           const incoming = data.result.filter(
             (tx: any) =>
               tx.to?.toLowerCase() === address?.toLowerCase() &&
@@ -597,16 +553,15 @@ function TransactionsSection({ address }: { address?: string }) {
             }
           }
         } catch {}
-        // No real investments — show demo
-        setInvestments([getDemoInvestment()]);
+        setInvestments([]);
         return;
       }
       try {
         const data = JSON.parse(localStorage.getItem(storageKey) || "[]");
         const reversed = [...data].reverse();
-        setInvestments(reversed.length > 0 ? reversed : [getDemoInvestment()]);
+        setInvestments(reversed);
       } catch {
-        setInvestments([getDemoInvestment()]);
+        setInvestments([]);
       }
     }
 
@@ -670,7 +625,7 @@ function TransactionsSection({ address }: { address?: string }) {
               <svg className="w-8 h-8 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
             </div>
             <div className="text-lg font-semibold text-slate-300">No transactions yet</div>
-            <div className="text-slate-600 mt-1 text-sm max-w-xs mx-anchor max-w-xs mx-auto">Once you make your first investment, all on-chain activity will appear here.</div>
+            <div className="text-slate-600 mt-1 text-sm max-w-xs mx-auto">Once you make your first investment, all on-chain activity will appear here.</div>
           </div>
         </div>
       </div>
@@ -794,7 +749,6 @@ function TransactionsSection({ address }: { address?: string }) {
           <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">Transaction History</h3>
         </div>
         {(() => {
-          // ── Compute daily accrual rows from investments ──────────────────────
           const accruals: Array<{
             key: string; asset: string; plan: string;
             amount: number; date: Date; day: number;
@@ -805,7 +759,6 @@ function TransactionsSection({ address }: { address?: string }) {
             const daysPassed = Math.floor((now - start) / 86400000);
             if (daysPassed <= 0) return;
             const dailyProfit = +((inv.amount * (inv.apr / 100)) / 365).toFixed(6);
-            // Show last 30 days max per investment
             const showFrom = Math.max(0, daysPassed - 30);
             for (let i = showFrom; i < daysPassed; i++) {
               accruals.push({
@@ -820,7 +773,6 @@ function TransactionsSection({ address }: { address?: string }) {
           });
           accruals.sort((a, b) => b.date.getTime() - a.date.getTime());
 
-          // ── Merge all tx types by date (newest first) ───────────────────────
           type TxItem =
             | { type: "deposit";   inv: any;    date: Date }
             | { type: "accrual";   ac: typeof accruals[0]; date: Date }
@@ -1096,7 +1048,7 @@ export default function DashboardPage() {
           investments = JSON.parse(localStorage.getItem(key) || "[]");
         } catch {}
       }
-      if (investments.length === 0) investments = [getDemoInvestment()];
+      // No demo fallback — real data only
       setCachedInvs(investments);
 
       // Pending withdrawals
