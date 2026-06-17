@@ -1138,9 +1138,10 @@ export default function DashboardPage() {
     cachedInvs.forEach((inv: any) => {
       const p = priceMap[inv.asset] || 1;
       const start = new Date(inv.investedAt).getTime();
-      const daysPassed = Math.max(0, Math.floor((nowMs - start) / 86400000));
+      // Fractional days — updates every second for smooth real-time display
+      const daysFraction = Math.max(0, (nowMs - start) / 86400000);
       const dailyRate = (Number(inv.amount) * (Number(inv.apr) / 100)) / 365;
-      const earnedCrypto = daysPassed * dailyRate;
+      const earnedCrypto = daysFraction * dailyRate;
       totalEarned  += earnedCrypto * p;
       totalBalance += (Number(inv.amount) + earnedCrypto) * p;
     });
