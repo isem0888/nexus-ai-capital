@@ -144,7 +144,7 @@ function OverviewSection({ stats, onWithdraw, address, prices }: any) {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         <StatCard
           label="Total Balance"
-          value="—"
+          value={`$${stats.totalBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
           sub="All assets combined"
           accent="bg-blue-500/15"
           icon={<svg className="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" /></svg>}
@@ -268,20 +268,36 @@ function OverviewSection({ stats, onWithdraw, address, prices }: any) {
 }
 
 // ─── Demo investment (shown when no real data) ────────────────────────────────
-const DEMO_INVESTED_AT = new Date(Date.now() - 25 * 3600 * 1000).toISOString();
-const DEMO_DAILY = +(0.125 * 8 / 100 / 365).toFixed(8);
-const DEMO_INVESTMENT = {
-  id: "demo_inv_1",
-  address: "demo",
-  asset: "ETH",
-  plan: "Flexible",
-  apr: 8,
-  amount: 0.125,
-  profit: DEMO_DAILY,
-  total: +(0.125 + DEMO_DAILY).toFixed(8),
-  investedAt: DEMO_INVESTED_AT,
-  settlementAt: null,
-};
+// Start date is persisted in localStorage so real days accumulate over time.
+function getDemoInvestment() {
+  const STORAGE_KEY = "nx_demo_inv_started";
+  let startedAt: string;
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      startedAt = saved;
+    } else {
+      // First load: set start to 25h ago so Day 1 is already visible
+      startedAt = new Date(Date.now() - 25 * 3600 * 1000).toISOString();
+      localStorage.setItem(STORAGE_KEY, startedAt);
+    }
+  } catch {
+    startedAt = new Date(Date.now() - 25 * 3600 * 1000).toISOString();
+  }
+  const dailyProfit = +(0.125 * 8 / 100 / 365).toFixed(8);
+  return {
+    id: "demo_inv_1",
+    address: "demo",
+    asset: "ETH",
+    plan: "Flexible",
+    apr: 8,
+    amount: 0.125,
+    profit: dailyProfit,
+    total: +(0.125 + dailyProfit).toFixed(8),
+    investedAt: startedAt,
+    settlementAt: null,
+  };
+}
 
 // ─── Investments ──────────────────────────────────────────────────────────────
 const ASSET_ICONS: Record<string, { icon: string; color: string; bg: string }> = {
@@ -329,8 +345,9 @@ function InvestmentsSection({ address }: { address?: string }) {
               return;
             } else if (Array.isArray(data) && data.length === 0) {
               // No real investments — show demo
-              setInvestments([DEMO_INVESTMENT]);
-              setExpandedIds(new Set([DEMO_INVESTMENT.id]));
+              const demo = getDemoInvestment();
+              setInvestments([demo]);
+              setExpandedIds(new Set([demo.id]));
               setLoading(false);
               return;
             }
@@ -344,12 +361,14 @@ function InvestmentsSection({ address }: { address?: string }) {
           setInvestments(reversed);
           if (reversed.length === 1) setExpandedIds(new Set([reversed[0].id]));
         } else {
-          setInvestments([DEMO_INVESTMENT]);
-          setExpandedIds(new Set([DEMO_INVESTMENT.id]));
+          const demo = getDemoInvestment();
+          setInvestments([demo]);
+          setExpandedIds(new Set([demo.id]));
         }
       } catch {
-        setInvestments([DEMO_INVESTMENT]);
-        setExpandedIds(new Set([DEMO_INVESTMENT.id]));
+        const demo = getDemoInvestment();
+        setInvestments([demo]);
+        setExpandedIds(new Set([demo.id]));
       }
       setLoading(false);
     }
@@ -578,15 +597,15 @@ function TransactionsSection({ address }: { address?: string }) {
           }
         } catch {}
         // No real investments — show demo
-        setInvestments([DEMO_INVESTMENT]);
+        setInvestments([getDemoInvestment()]);
         return;
       }
       try {
         const data = JSON.parse(localStorage.getItem(storageKey) || "[]");
         const reversed = [...data].reverse();
-        setInvestments(reversed.length > 0 ? reversed : [DEMO_INVESTMENT]);
+        setInvestments(reversed.length > 0 ? reversed : [getDemoInvestment()]);
       } catch {
-        setInvestments([DEMO_INVESTMENT]);
+        setInvestments([getDemoInvestment()]);
       }
     }
 
@@ -1012,17 +1031,21 @@ export default function DashboardPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("overview");
 
-  // ── Wallet ETH balance sync (temporarily disabled) ──
-  const [walletEthBalance] = useState(0);
+  // ── Live clock (ticks every second for real-time earned/balance updates) ──
+  const [nowMs, setNowMs] = useState(Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNowMs(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
 
   const [stats, setStats] = useState({
     totalBalance: 0,
     activeInvestments: 0,
     totalEarned: 0,
     pendingWithdrawals: 0,
-    walletEth: "0",   // реальний ETH з гаманця (formatted)
-    walletUsd: 0,     // ETH у USD
   });
+  const [cachedInvs, setCachedInvs] = useState<any[]>([]);
+  const [pendingUSD, setPendingUSD] = useState(0);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -1045,19 +1068,16 @@ export default function DashboardPage() {
           ETH: data.ethereum?.usd || 0,
           USDT: data.tether?.usd || 1,
         });
-      } catch (error) {
-        console.error("Price loading error:", error);
-      }
+      } catch {}
     }
     loadPrices();
     const interval = setInterval(loadPrices, 60000);
     return () => clearInterval(interval);
   }, []);
 
+  // ── Fetch investments + withdrawals (only on address/refreshKey change) ──
   useEffect(() => {
-    if (!prices.ETH && !prices.BTC) return;
-
-    async function calcStats() {
+    async function fetchData() {
       let investments: any[] = [];
 
       if (address) {
@@ -1065,7 +1085,7 @@ export default function DashboardPage() {
           const res = await fetch(`/api/investments?address=${address}`);
           if (res.ok) {
             const data = await res.json();
-            if (Array.isArray(data)) investments = data;
+            if (Array.isArray(data) && data.length > 0) investments = data;
           }
         } catch {}
       }
@@ -1075,30 +1095,8 @@ export default function DashboardPage() {
           investments = JSON.parse(localStorage.getItem(key) || "[]");
         } catch {}
       }
-      // Fall back to demo data if still empty
-      if (investments.length === 0) investments = [DEMO_INVESTMENT];
-
-      const priceMap: Record<string, number> = {
-        ETH: prices.ETH || 1630,
-        BTC: prices.BTC || 61000,
-        USDT: 1,
-        SOL: 65,
-        XRP: 1.17,
-        BNB: 580,
-        LINK: 8,
-        NEAR: 2.1,
-      };
-
-      let totalEarned = 0;
-
-      investments.forEach((inv: any) => {
-        const p = priceMap[inv.asset] || 1;
-        totalEarned += (inv.profit || 0) * p;
-      });
-
-      // ── Total Balance = реальний баланс MetaMask (ETH × поточна ціна) ──────
-      const walletUsd = walletEthBalance * (prices.ETH || 0);
-      const totalBalance = walletUsd;
+      if (investments.length === 0) investments = [getDemoInvestment()];
+      setCachedInvs(investments);
 
       // Pending withdrawals
       let pendingWithdrawalsUSD = 0;
@@ -1108,33 +1106,51 @@ export default function DashboardPage() {
           if (wRes.ok) {
             const wData = await wRes.json();
             if (Array.isArray(wData)) {
-              wData
-                .filter((w: any) => w.status === "pending")
+              const priceMap: Record<string, number> = {
+                ETH: prices.ETH || 2500, BTC: prices.BTC || 65000,
+                USDT: 1, SOL: 150, XRP: 1.17, BNB: 580, LINK: 8, NEAR: 2.1,
+              };
+              wData.filter((w: any) => w.status === "pending")
                 .forEach((w: any) => {
-                  const p = priceMap[w.asset] || 1;
-                  pendingWithdrawalsUSD += (Number(w.amount) || 0) * p;
+                  pendingWithdrawalsUSD += (Number(w.amount) || 0) * (priceMap[w.asset] || 1);
                 });
             }
           }
         } catch {}
       }
-
-      // Форматуємо totalBalance з 2 знаками якщо менше $1
-      const fmtBalance = (v: number) =>
-        v < 1 && v > 0 ? v.toFixed(2) : Math.round(v).toLocaleString();
-
-      setStats({
-        totalBalance:       totalBalance,
-        activeInvestments:  investments.length,
-        totalEarned:        totalEarned,
-        pendingWithdrawals: Math.round(pendingWithdrawalsUSD),
-        walletEth:          walletEthBalance > 0 ? walletEthBalance.toFixed(6) : "0",
-        walletUsd:          walletUsd,
-      });
+      setPendingUSD(pendingWithdrawalsUSD);
     }
+    fetchData();
+  }, [address, refreshKey]);
 
-    calcStats();
-  }, [address, prices.ETH, prices.BTC, refreshKey, walletEthBalance]);
+  // ── Pure computation: runs every second via nowMs ──────────────────────────
+  useEffect(() => {
+    if (!prices.ETH && !prices.BTC) return;
+    const priceMap: Record<string, number> = {
+      ETH: prices.ETH || 2500, BTC: prices.BTC || 65000,
+      USDT: 1, SOL: 150, XRP: 1.17, BNB: 580, LINK: 8, NEAR: 2.1,
+    };
+
+    let totalEarned = 0;
+    let totalBalance = 0;
+
+    cachedInvs.forEach((inv: any) => {
+      const p = priceMap[inv.asset] || 1;
+      const start = new Date(inv.investedAt).getTime();
+      const daysPassed = Math.max(0, Math.floor((nowMs - start) / 86400000));
+      const dailyRate = (Number(inv.amount) * (Number(inv.apr) / 100)) / 365;
+      const earnedCrypto = daysPassed * dailyRate;
+      totalEarned  += earnedCrypto * p;
+      totalBalance += (Number(inv.amount) + earnedCrypto) * p;
+    });
+
+    setStats({
+      totalBalance,
+      activeInvestments: cachedInvs.length,
+      totalEarned,
+      pendingWithdrawals: Math.round(pendingUSD),
+    });
+  }, [cachedInvs, nowMs, prices.ETH, prices.BTC, pendingUSD]);
 
   useEffect(() => {
     if (walletStatus === "connecting" || walletStatus === "reconnecting") return;
