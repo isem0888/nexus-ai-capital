@@ -55,8 +55,22 @@ export default function InvestPage() {
   }, [showFlexTooltip]);
 
   function getGlobalTVL(): number {
-    const slot = Math.floor(Date.now() / (6 * 3600000));
-    return 300 + ((slot * 1103515245 + 12345) >>> 0) % 111;
+    // Reference slot: Jan 1 2026 00:00 UTC, starting value 370M
+    const MS_PER_SLOT = 6 * 3600 * 1000;
+    const REF_SLOT = Math.floor(new Date("2026-01-01T00:00:00Z").getTime() / MS_PER_SLOT);
+    const curSlot = Math.floor(Date.now() / MS_PER_SLOT);
+    let tvl = 370;
+    let seed = 0xABCD1234;
+    for (let s = REF_SLOT; s < curSlot; s++) {
+      seed = (Math.imul(seed, 1664525) + 1013904223) | 0;
+      const step = (seed >>> 0) % 3 + 1; // 1, 2, or 3
+      seed = (Math.imul(seed, 1664525) + 1013904223) | 0;
+      const dir = (seed & 1) ? 1 : -1;
+      tvl += dir * step;
+      if (tvl > 404) tvl = 404;
+      if (tvl < 353) tvl = 353;
+    }
+    return tvl;
   }
   const [tvl, setTvl] = useState<number>(getGlobalTVL);
 
