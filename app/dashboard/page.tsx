@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { useAccount } from "wagmi";
+import { useAccount, useBalance } from "wagmi";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -978,6 +978,7 @@ function SettingsSection({ address }: { address?: string }) {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function DashboardPage() {
   const { address, isConnected, status: walletStatus } = useAccount();
+  const { data: walletBalance } = useBalance({ address, query: { refetchInterval: 30000 } });
   const { data: session, status } = useSession();
   const isGoogleAuth = status === "authenticated";
   const isAuthorized = isConnected || isGoogleAuth;
@@ -1179,9 +1180,17 @@ export default function DashboardPage() {
               <div className="text-slate-500 font-mono text-xs truncate mt-0.5">
                 {isConnected ? address : session?.user?.email || ""}
               </div>
-              <div className="inline-flex items-center gap-1.5 mt-1.5 px-2.5 py-0.5 rounded-full bg-green-500/15 border border-green-500/25 text-green-400 text-xs font-semibold">
-                <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                Connected
+              <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-green-500/15 border border-green-500/25 text-green-400 text-xs font-semibold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                  Connected
+                </div>
+                {isConnected && walletBalance && (
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-500/15 border border-blue-500/25 text-blue-300 text-xs font-semibold">
+                    <span className="text-blue-400 font-bold">Ξ</span>
+                    {parseFloat(walletBalance.formatted).toFixed(4)} ETH
+                  </div>
+                )}
               </div>
             </div>
           </div>
