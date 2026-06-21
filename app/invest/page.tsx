@@ -55,20 +55,20 @@ export default function InvestPage() {
   }, [showFlexTooltip]);
 
   function getGlobalTVL(): number {
-    // Reference slot: Jan 1 2026 00:00 UTC, starting value 370M
+    // Reference: Jan 1 2026 00:00 UTC, start 490M, range 486-500, step 2-3M
     const MS_PER_SLOT = 6 * 3600 * 1000;
     const REF_SLOT = Math.floor(new Date("2026-01-01T00:00:00Z").getTime() / MS_PER_SLOT);
     const curSlot = Math.floor(Date.now() / MS_PER_SLOT);
-    let tvl = 370;
-    let seed = 0xABCD1234;
+    let tvl = 490;
+    let seed = 0xF1A2B3C4;
     for (let s = REF_SLOT; s < curSlot; s++) {
       seed = (Math.imul(seed, 1664525) + 1013904223) | 0;
-      const step = (seed >>> 0) % 3 + 1; // 1, 2, or 3
+      const step = (seed >>> 0) % 2 + 2; // 2 or 3
       seed = (Math.imul(seed, 1664525) + 1013904223) | 0;
       const dir = (seed & 1) ? 1 : -1;
       tvl += dir * step;
-      if (tvl > 404) tvl = 404;
-      if (tvl < 353) tvl = 353;
+      if (tvl > 500) tvl = 500;
+      if (tvl < 486) tvl = 486;
     }
     return tvl;
   }
@@ -494,16 +494,48 @@ export default function InvestPage() {
         </div>
 
         {/* TVL Banner */}
-        <div className="mb-8 flex justify-center">
-          <div className="inline-flex items-center gap-4 rounded-2xl border border-blue-500/20 bg-gradient-to-r from-blue-500/10 via-violet-500/10 to-blue-500/10 backdrop-blur-xl px-8 py-5">
-            <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center flex-shrink-0">
-              <svg className="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+        <div className="mb-8">
+          <div className="rounded-2xl border border-blue-500/20 bg-gradient-to-r from-blue-500/10 via-violet-500/10 to-blue-500/10 backdrop-blur-xl px-7 py-6">
+            <div className="flex items-center gap-4 mb-5">
+              <div className="w-11 h-11 rounded-xl bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <div className="text-xs text-slate-400 uppercase tracking-widest mb-0.5">Total Value Locked</div>
+                <div className="text-3xl font-black text-white">${tvl}M</div>
+              </div>
+              <div className="text-right flex-shrink-0">
+                <div className="text-xs text-slate-500 mb-0.5">Cap</div>
+                <div className="text-lg font-bold text-slate-300">$500M</div>
+              </div>
             </div>
+
+            {/* Progress bar */}
             <div>
-              <div className="text-xs text-slate-400 uppercase tracking-widest mb-0.5">Total Value Locked</div>
-              <div className="text-2xl font-black text-white">${tvl}M+</div>
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-xs text-slate-400 font-medium">Pool capacity</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-bold text-blue-400">{((tvl / 500) * 100).toFixed(1)}%</span>
+                  <span className="text-xs text-slate-500">${tvl}M / $500M</span>
+                </div>
+              </div>
+              <div className="w-full h-3 bg-slate-800/80 rounded-full overflow-hidden border border-slate-700/40">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-blue-500 via-violet-500 to-blue-400 transition-all duration-1000 relative"
+                  style={{ width: `${(tvl / 500) * 100}%` }}
+                >
+                  <div className="absolute inset-0 bg-white/10 animate-pulse rounded-full" />
+                </div>
+              </div>
+              <div className="flex justify-between mt-1.5 text-xs text-slate-600">
+                <span>$0</span>
+                <span>$125M</span>
+                <span>$250M</span>
+                <span>$375M</span>
+                <span>$500M</span>
+              </div>
             </div>
           </div>
         </div>
